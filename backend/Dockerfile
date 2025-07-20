@@ -33,10 +33,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         ./api
 
 # ---------- Runtime stage -------------------------------------------------
-FROM scratch AS runtime
+FROM alpine:3.19 AS runtime
 
-# Copy CA certificates for HTTPS outbound calls
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Install ca-certificates and curl for health checks
+RUN apk add --no-cache ca-certificates curl
 
 # Copy binary
 COPY --from=builder /out/backend /app/backend

@@ -1,0 +1,117 @@
+# Docker ignore file for Veridian project
+# Excludes unnecessary files from build context for faster builds
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+docs/
+*.txt
+LICENSE
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# Dependencies (should be installed inside container)
+node_modules/
+vendor/
+.npm
+.yarn/
+
+# Build outputs
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Environment files (use .env.example instead)
+.env
+.env.local
+.env.*.local
+
+# Cache directories
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.vuepress/dist/
+
+# Docker related
+.dockerignore
+Dockerfile*
+docker-compose*
+.docker/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+.drone.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Test files (include only if needed for integration tests)
+*.test
+test/
+tests/
+__tests__/
+*.spec.ts
+*.spec.js
+*.test.ts
+*.test.js
+
+# Development tools
+.eslintrc*
+.prettierrc*
+jest.config.*
+webpack.config.*
+rollup.config.*
+vite.config.*

@@ -1,0 +1,179 @@
+# Modern Docker Compose for Veridian local development
+# Following 2025 best practices - no version key (forward-compatible)
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+      # Enable BuildKit cache mounts for faster builds
+      cache_from:
+        - type=local,src=/tmp/.buildx-cache
+      cache_to:
+        - type=local,dest=/tmp/.buildx-cache,mode=max
+    container_name: veridian-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - GIN_MODE=debug
+      - LOG_LEVEL=debug
+    networks:
+      - veridian-net
+    # Resource limits to prevent host starvation
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    restart: unless-stopped
+    # Health check for automatic restart on failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Security: run as non-root (matches Dockerfile USER)
+    user: "65532:65532"
+    # Optional: read-only filesystem for security
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    # Modern watch configuration for Go hot-reload
+    develop:
+      watch:
+        - action: rebuild
+          path: ./backend/go.mod
+        - action: rebuild
+          path: ./backend/go.sum
+        - action: sync+restart
+          path: ./backend/api
+          target: /src/api
+    
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development  # Use dev stage for local development
+      # BuildKit cache optimization
+      cache_from:
+        - type=local,src=/tmp/.buildx-cache-frontend
+      cache_to:
+        - type=local,dest=/tmp/.buildx-cache-frontend,mode=max
+    container_name: veridian-frontend
+    ports:
+      - "5173:5173"  # Vite dev server port
+    environment:
+      - VITE_API_URL=http://localhost:8080
+      - NODE_ENV=development
+    networks:
+      - veridian-net
+    # Hot reload via bind mount for development
+    volumes:
+      - ./frontend:/app:cached
+      - /app/node_modules  # Anonymous volume to prevent host node_modules override
+    # Modern watch configuration for hot-reload
+    develop:
+      watch:
+        - action: sync
+          path: ./frontend/src
+          target: /app/src
+        - action: sync
+          path: ./frontend/public
+          target: /app/public
+        - action: rebuild
+          path: ./frontend/package.json
+        - action: rebuild
+          path: ./frontend/vite.config.ts
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+    # Health check for Vite dev server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    # Security: run as non-root (matches Dockerfile USER)
+    user: "1001:1001"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Production frontend service (use with --profile prod)
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: veridian-frontend-prod
+    ports:
+      - "3000:8080"  # Nginx non-privileged port
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=8080
+      - NODE_ENV=production
+    networks:
+      - veridian-net
+    # Enhanced resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 32M
+          cpus: '0.1'
+    # Health check for nginx
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    # Enhanced security for production
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    user: "1001:1001"
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:noexec,nosuid,size=10m
+      - /var/run:noexec,nosuid,size=10m
+    profiles:
+      - prod  # Start with: docker compose --profile prod up
+    depends_on:
+      backend:
+        condition: service_healthy
+
+# Explicit network definition for isolation
+networks:
+  veridian-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    # Security: enable inter-container communication control
+    internal: false
+    attachable: false
+
+# Secrets management (placeholder for future use)
+# secrets:
+#   api_key:
+#     file: ./secrets/api_key.txt
+#   db_password:
+#     file: ./secrets/db_password.txt

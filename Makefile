@@ -1,4 +1,4 @@
-.PHONY: run-backend backend-tidy docker-build-backend run-frontend run-frontend-dev docker-build-frontend
+.PHONY: run-backend backend-tidy docker-build-backend run-frontend run-frontend-dev docker-build-frontend compose-up compose-up-logs compose-up-prod compose-down compose-down-volumes compose-logs compose-watch compose-test compose-security-scan compose-clean
 
 # Backend targets
 # Run the backend API server
@@ -53,3 +53,60 @@ docker-test-frontend:
 	@docker stop veridian-frontend-test
 	@docker rm veridian-frontend-test
 	@echo "✅ Frontend container tests passed!"
+
+# Docker Compose targets (2025 best practices)
+# Start development environment
+compose-up:
+	docker compose up --build -d
+
+# Start development environment with logs
+compose-up-logs:
+	docker compose up --build
+
+# Start production environment  
+compose-up-prod:
+	docker compose --profile prod up --build -d
+
+# Stop all services
+compose-down:
+	docker compose down
+
+# Stop and remove volumes
+compose-down-volumes:
+	docker compose down -v
+
+# View service logs
+compose-logs:
+	docker compose logs -f
+
+# Watch for file changes and rebuild (modern hot-reload)
+compose-watch:
+	docker compose watch
+
+# Run health checks and smoke tests
+compose-test:
+	@echo "Starting services..."
+	@docker compose up --build -d
+	@echo "Waiting for services to be healthy..."
+	@sleep 10
+	@echo "Testing backend health endpoint..."
+	@curl -f http://localhost:8080/health || (docker compose logs backend && exit 1)
+	@echo "Testing frontend..."
+	@curl -f http://localhost:5173 || (docker compose logs frontend && exit 1)
+	@echo "✅ All compose services are healthy!"
+	@docker compose down
+
+# Security scan all images with Trivy
+compose-security-scan:
+	@echo "Scanning backend image for vulnerabilities..."
+	@docker compose build backend
+	@trivy image veridian-backend:latest || echo "⚠️ Trivy not installed or scan failed"
+	@echo "Scanning frontend image for vulnerabilities..."
+	@docker compose build frontend
+	@trivy image veridian-frontend:latest || echo "⚠️ Trivy not installed or scan failed"
+
+# Clean up all containers, images, and cache
+compose-clean:
+	docker compose down -v --remove-orphans
+	docker system prune -f
+	docker builder prune -f
