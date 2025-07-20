@@ -1,0 +1,41 @@
+# Ignore documentation
+**/*.md
+docs/
+*.txt
+
+# Ignore version control
+.git
+.gitignore
+
+# Ignore other project directories
+frontend/
+iac/
+.taskmaster/
+
+# Ignore test files and coverage
+*_test.go
+coverage.*
+*.out
+
+# Ignore build artifacts
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore temporary files
+tmp/
+temp/
+*.tmp
