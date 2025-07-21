@@ -58,7 +58,7 @@ jobs:
         run: |
           npm ci
           npm run lint
-          npm run test -- --watchAll=false
+          npm run test -- --run
 
 ###############################################################################
 # 2. Build container images
