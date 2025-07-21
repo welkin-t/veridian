@@ -66,7 +66,7 @@ jobs:
           TF_VAR_container_name: ${{ secrets.TF_BACKEND_CONTAINER_NAME }}
         run: |
           terraform plan \
-            -var="location=${{ vars.AZURE_LOCATION || 'East US' }}" \
+            -var="location=${{ vars.AZURE_LOCATION || 'polandcentral' }}" \
             -var="environment=${{ vars.ENVIRONMENT || 'dev' }}" \
             -out=tfplan
 
@@ -90,6 +90,14 @@ jobs:
       run:
         working-directory: ${{ env.WORKING_DIRECTORY }}
     
+
+    # Global environment variables for all steps
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -98,11 +106,6 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
-
-      - name: Configure Azure CLI
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Download Terraform Plan
         uses: actions/download-artifact@v4
