@@ -66,12 +66,6 @@ resource "azurerm_storage_account" "tfstate" {
   shared_access_key_enabled       = true
   public_network_access_enabled   = true
 
-  network_rules {
-    default_action             = "Deny"
-    bypass                     = ["AzureServices"]
-    ip_rules                   = ["185.233.247.77"]
-  }
-
   # Enable hierarchical namespace if needed (Data Lake features)
   is_hns_enabled = false
   
