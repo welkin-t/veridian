@@ -50,6 +50,7 @@ resource "azurerm_resource_group" "tfstate" {
 }
 
 # Create Storage Account for Terraform state
+#checkov:skip=CKV_AZURE_206:This is a terraform state backend, LRS is a cost-effective choice and acceptable for this non-critical resource.
 resource "azurerm_storage_account" "tfstate" {
   name                = var.storage_account_name
   resource_group_name = azurerm_resource_group.tfstate.name
@@ -63,7 +64,8 @@ resource "azurerm_storage_account" "tfstate" {
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
   shared_access_key_enabled       = true
-  
+  public_network_access_enabled   = false
+
   # Enable hierarchical namespace if needed (Data Lake features)
   is_hns_enabled = false
   
