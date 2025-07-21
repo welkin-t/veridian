@@ -5,9 +5,21 @@ name: CI
 
 on:
   push:
-    branches: ['**']      # every branch, inc. main
+    branches: ['**']     # every branch, inc. main
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.smoke.yml'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: ['**']
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'docker-compose.yml'
+      - 'docker-compose.smoke.yml'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:      # manual trigger
 
 env:

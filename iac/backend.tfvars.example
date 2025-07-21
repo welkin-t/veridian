@@ -1,0 +1,21 @@
+# Example backend configuration values
+# Copy this to backend.tfvars and fill in your actual values
+
+resource_group_name   = "rg-veridian-terraform-state"
+storage_account_name  = "saveridianterraform001"  # Must be globally unique, change this!
+container_name        = "terraform-state"
+state_key            = "terraform.tfstate"
+location             = "East US"
+
+# Optional configuration
+environment    = "dev"
+project_name   = "veridian"
+
+# Example tags
+tags = {
+  Project     = "veridian"
+  Environment = "dev" 
+  Owner       = "your-team"
+  ManagedBy   = "terraform"
+  CreatedDate = "2025-07-21"
+}

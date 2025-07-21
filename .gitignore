@@ -12,6 +12,16 @@ node_modules/
 # Environment variables
 .env
 
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+*.tfplan.*
+iac/backend.tfvars
+*.auto.tfvars
+
 # Editor directories and files
 .idea
 .vscode
