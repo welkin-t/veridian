@@ -1,0 +1,11 @@
+# Docker Compose override for smoke testing
+# This file overrides the build contexts with pre-built images for CI testing
+
+services:
+  backend:
+    build: null  # Disable build, use pre-built image
+    image: veridian-backend:${GITHUB_SHA:-latest}
+    
+  frontend:
+    build: null  # Disable build, use pre-built image  
+    image: veridian-frontend:${GITHUB_SHA:-latest}

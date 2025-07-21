@@ -1,0 +1,286 @@
+# CI Pipeline for Veridian
+# Docker-buildx • Layer caching • GitHub Container Registry (GHCR) • docker-compose smoke tests
+
+name: CI
+
+on:
+  push:
+    branches: ['**']      # every branch, inc. main
+  pull_request:
+    branches: ['**']
+  workflow_dispatch:      # manual trigger
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/veridian   # ghcr.io/<owner>/veridian-*
+
+jobs:
+###############################################################################
+# 1. Lint & unit-test
+###############################################################################
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test
+          POSTGRES_PASSWORD: secret
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ['5432:5432']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.24.5
+
+      - name: Backend unit tests
+        run: |
+          cd backend
+          go test ./...
+
+      - name: Frontend install deps
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend lint & tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run test -- --watchAll=false
+
+###############################################################################
+# 2. Build container images
+###############################################################################
+  build-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- Buildx bootstrap ----------
+      - uses: docker/setup-buildx-action@v3
+
+      # ---------- Registry login ----------
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ---------- Cache config ----------
+      - name: Prepare build metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend
+          tags: |
+            type=sha,format=long,prefix=,suffix=
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+
+      - name: Build & push (backend)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: ${{ github.ref == 'refs/heads/main' }} # push only on main
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false     # smaller layers
+          outputs: type=docker,dest=/tmp/backend-image.tar
+
+      - name: Upload backend image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-image
+          path: /tmp/backend-image.tar
+
+  build-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+      image_digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-frontend
+          tags: |
+            type=sha,format=long,prefix=,suffix=
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+          labels: |
+            org.opencontainers.image.source=${{ github.repository }}
+
+      - name: Build & push (frontend)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+          outputs: type=docker,dest=/tmp/frontend-image.tar
+
+      - name: Upload frontend image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-image
+          path: /tmp/frontend-image.tar
+
+###############################################################################
+# 3. Smoke tests via docker-compose
+###############################################################################
+  smoke:
+    name: Smoke ‑ docker-compose
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Download built images
+      - name: Download backend image
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-image
+          path: /tmp
+
+      - name: Download frontend image
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-image
+          path: /tmp
+
+      # Load images into docker daemon
+      - name: Load backend image
+        run: docker load -i /tmp/backend-image.tar
+
+      - name: Load frontend image
+        run: docker load -i /tmp/frontend-image.tar
+
+      # Tag images for compose
+      - name: Tag images for compose
+        run: |
+          docker tag $(docker images --format "table {{.Repository}}:{{.Tag}}" | grep backend | head -1) veridian-backend:${{ github.sha }}
+          docker tag $(docker images --format "table {{.Repository}}:{{.Tag}}" | grep frontend | head -1) veridian-frontend:${{ github.sha }}
+
+      # Spin up stack
+      - name: Compose up
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            -f docker-compose.smoke.yml \
+            --project-name smoke up -d
+
+      - name: Wait for services to be ready
+        run: |
+          echo "Waiting for backend health check..."
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:8080/health; then
+              echo "✅ Backend is healthy"
+              break
+            fi
+            echo "Backend not ready yet, retrying... ($i/30)"
+            sleep 2
+          done
+          
+          echo "Waiting for frontend to be ready..."
+          for i in {1..30}; do
+            if curl --fail --silent http://localhost:5173; then
+              echo "✅ Frontend is ready"
+              break
+            fi
+            echo "Frontend not ready yet, retrying... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run smoke tests
+        run: |
+          echo "Testing backend health endpoint..."
+          curl --fail --retry 3 --retry-delay 2 http://localhost:8080/health
+          echo "✅ Backend health check passed"
+          
+          echo "Testing frontend root..."
+          response=$(curl --fail --retry 3 --retry-delay 2 http://localhost:5173)
+          if echo "$response" | grep -qi "vite\|react\|veridian"; then
+            echo "✅ Frontend smoke test passed"
+          else
+            echo "❌ Frontend response doesn't contain expected content"
+            exit 1
+          fi
+
+      - name: Compose logs (on failure)
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.smoke.yml logs --no-color
+
+      - name: Compose down
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.smoke.yml down -v
+
+###############################################################################
+# 4. Security scan (optional, runs on main branch)
+###############################################################################
+  security-scan:
+    name: Security Scan
+    needs: [build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build-backend.outputs.image_tag }}
+          format: 'sarif'
+          output: 'backend-trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'backend-trivy-results.sarif'

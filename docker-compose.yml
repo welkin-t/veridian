@@ -1,5 +1,4 @@
-# Modern Docker Compose for Veridian local development
-# Following 2025 best practices - no version key (forward-compatible)
+# Docker Compose for Veridian local development
 
 services:
   backend:

@@ -1,4 +1,4 @@
-.PHONY: run-backend backend-tidy docker-build-backend run-frontend run-frontend-dev docker-build-frontend compose-up compose-up-logs compose-up-prod compose-down compose-down-volumes compose-logs compose-watch compose-test compose-security-scan compose-clean
+.PHONY: run-backend backend-tidy docker-build-backend run-frontend run-frontend-dev docker-build-frontend compose-up compose-up-logs compose-up-prod compose-down compose-down-volumes compose-logs compose-watch compose-test compose-security-scan compose-clean compose-smoke-test
 
 # Backend targets
 # Run the backend API server
@@ -110,3 +110,18 @@ compose-clean:
 	docker compose down -v --remove-orphans
 	docker system prune -f
 	docker builder prune -f
+
+# CI smoke test (mimics GitHub Actions locally)
+compose-smoke-test:
+	@echo "Running CI-style smoke tests locally..."
+	@export GITHUB_SHA=local-test && \
+	docker compose build backend frontend && \
+	docker tag veridian-backend:latest veridian-backend:local-test && \
+	docker tag veridian-frontend:latest veridian-frontend:local-test && \
+	docker compose -f docker-compose.yml -f docker-compose.smoke.yml --project-name smoke up -d && \
+	echo "Waiting for services..." && sleep 15 && \
+	curl --fail --retry 3 --retry-delay 2 http://localhost:8080/health && \
+	echo "✅ Backend health check passed" && \
+	curl --fail --retry 3 --retry-delay 2 http://localhost:5173 && \
+	echo "✅ Frontend smoke test passed" && \
+	docker compose -f docker-compose.yml -f docker-compose.smoke.yml --project-name smoke down -v
