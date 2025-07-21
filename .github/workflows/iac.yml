@@ -6,10 +6,14 @@ name: Infrastructure
 on:
   push:
     branches: ['main']
-    paths: ['iac/**']
+    paths:
+      - 'iac/**'
+      - '.github/workflows/iac.yml'
   pull_request:
     branches: ['main']
-    paths: ['iac/**']
+    paths:
+      - 'iac/**'
+      - '.github/workflows/iac.yml'
   workflow_dispatch:
 
 env:
