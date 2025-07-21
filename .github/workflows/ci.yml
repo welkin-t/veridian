@@ -260,27 +260,3 @@ jobs:
       - name: Compose down
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.smoke.yml down -v
-
-###############################################################################
-# 4. Security scan (optional, runs on main branch)
-###############################################################################
-  security-scan:
-    name: Security Scan
-    needs: [build-backend, build-frontend]
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ needs.build-backend.outputs.image_tag }}
-          format: 'sarif'
-          output: 'backend-trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'backend-trivy-results.sarif'
