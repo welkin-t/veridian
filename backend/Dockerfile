@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Copy rest of source
 COPY . .
 
-# Build statically linked binary
+# Build statically linked binary for API server
 ENV CGO_ENABLED=0 \
     GOOS=linux \
     GOARCH=amd64
@@ -30,7 +30,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -buildvcs=false \
         -ldflags="-s -w" \
         -o /out/backend \
-        ./api
+        ./cmd/api
 
 # Build migration binary
 RUN --mount=type=cache,target=/go/pkg/mod \

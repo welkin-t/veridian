@@ -17,6 +17,13 @@ services:
     environment:
       - GIN_MODE=debug
       - LOG_LEVEL=debug
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER:-veridian}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-veridian_dev_password}
+      - DB_NAME=${POSTGRES_DB:-veridian}
+      - DB_SSL_MODE=disable
+      - PORT=8080
       - DATABASE_URL=postgresql://${POSTGRES_USER:-veridian}:${POSTGRES_PASSWORD:-veridian_dev_password}@db:5432/${POSTGRES_DB:-veridian}?sslmode=disable
     networks:
       - veridian-net

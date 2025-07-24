@@ -14,19 +14,28 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     email,
-    hashed_password
+    hashed_password,
+    email_verified,
+    is_active
 ) VALUES (
-    $1, $2
-) RETURNING id, email, hashed_password, created_at, updated_at
+    $1, $2, $3, $4
+) RETURNING id, email, hashed_password, created_at, updated_at, email_verified, last_login, is_active
 `
 
 type CreateUserParams struct {
 	Email          string `json:"email"`
 	HashedPassword string `json:"hashed_password"`
+	EmailVerified  bool   `json:"email_verified"`
+	IsActive       bool   `json:"is_active"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRow(ctx, createUser, arg.Email, arg.HashedPassword)
+	row := q.db.QueryRow(ctx, createUser,
+		arg.Email,
+		arg.HashedPassword,
+		arg.EmailVerified,
+		arg.IsActive,
+	)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -34,8 +43,24 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.HashedPassword,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
+		&i.LastLogin,
+		&i.IsActive,
 	)
 	return i, err
+}
+
+const deactivateUser = `-- name: DeactivateUser :exec
+UPDATE users 
+SET 
+    is_active = FALSE,
+    updated_at = now()
+WHERE id = $1
+`
+
+func (q *Queries) DeactivateUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, deactivateUser, id)
+	return err
 }
 
 const deleteUser = `-- name: DeleteUser :exec
@@ -49,8 +74,8 @@ func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, hashed_password, created_at, updated_at FROM users 
-WHERE email = $1
+SELECT id, email, hashed_password, created_at, updated_at, email_verified, last_login, is_active FROM users 
+WHERE email = $1 AND is_active = TRUE
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -62,13 +87,37 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.HashedPassword,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
+		&i.LastLogin,
+		&i.IsActive,
+	)
+	return i, err
+}
+
+const getUserByEmailIncludeInactive = `-- name: GetUserByEmailIncludeInactive :one
+SELECT id, email, hashed_password, created_at, updated_at, email_verified, last_login, is_active FROM users 
+WHERE email = $1
+`
+
+func (q *Queries) GetUserByEmailIncludeInactive(ctx context.Context, email string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmailIncludeInactive, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.HashedPassword,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.EmailVerified,
+		&i.LastLogin,
+		&i.IsActive,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, hashed_password, created_at, updated_at FROM users 
-WHERE id = $1
+SELECT id, email, hashed_password, created_at, updated_at, email_verified, last_login, is_active FROM users 
+WHERE id = $1 AND is_active = TRUE
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
@@ -80,8 +129,42 @@ func (q *Queries) GetUserByID(ctx context.Context, id uuid.UUID) (User, error) {
 		&i.HashedPassword,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
+		&i.LastLogin,
+		&i.IsActive,
 	)
 	return i, err
+}
+
+const updateUserEmailVerified = `-- name: UpdateUserEmailVerified :exec
+UPDATE users 
+SET 
+    email_verified = $2,
+    updated_at = now()
+WHERE id = $1
+`
+
+type UpdateUserEmailVerifiedParams struct {
+	ID            uuid.UUID `json:"id"`
+	EmailVerified bool      `json:"email_verified"`
+}
+
+func (q *Queries) UpdateUserEmailVerified(ctx context.Context, arg UpdateUserEmailVerifiedParams) error {
+	_, err := q.db.Exec(ctx, updateUserEmailVerified, arg.ID, arg.EmailVerified)
+	return err
+}
+
+const updateUserLastLogin = `-- name: UpdateUserLastLogin :exec
+UPDATE users 
+SET 
+    last_login = now(),
+    updated_at = now()
+WHERE id = $1
+`
+
+func (q *Queries) UpdateUserLastLogin(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.Exec(ctx, updateUserLastLogin, id)
+	return err
 }
 
 const updateUserPassword = `-- name: UpdateUserPassword :one
@@ -89,8 +172,8 @@ UPDATE users
 SET 
     hashed_password = $2,
     updated_at = now()
-WHERE id = $1
-RETURNING id, email, hashed_password, created_at, updated_at
+WHERE id = $1 AND is_active = TRUE
+RETURNING id, email, hashed_password, created_at, updated_at, email_verified, last_login, is_active
 `
 
 type UpdateUserPasswordParams struct {
@@ -107,6 +190,9 @@ func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPassword
 		&i.HashedPassword,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.EmailVerified,
+		&i.LastLogin,
+		&i.IsActive,
 	)
 	return i, err
 }

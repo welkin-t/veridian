@@ -9,7 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/guregu/null/null"
+	"github.com/guregu/null/v6"
 )
 
 const createExecution = `-- name: CreateExecution :one

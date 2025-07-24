@@ -13,8 +13,11 @@ import (
 type Querier interface {
 	CreateExecution(ctx context.Context, arg CreateExecutionParams) (Execution, error)
 	CreateJob(ctx context.Context, arg CreateJobParams) (Job, error)
+	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeactivateUser(ctx context.Context, id uuid.UUID) error
 	DeleteExecution(ctx context.Context, id uuid.UUID) error
+	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteJob(ctx context.Context, arg DeleteJobParams) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	GetExecution(ctx context.Context, id uuid.UUID) (Execution, error)
@@ -28,15 +31,23 @@ type Querier interface {
 	GetJobsByOwnerWithLimit(ctx context.Context, arg GetJobsByOwnerWithLimitParams) ([]Job, error)
 	GetPendingExecutions(ctx context.Context) ([]Execution, error)
 	GetRecentJobs(ctx context.Context, arg GetRecentJobsParams) ([]Job, error)
+	GetRefreshToken(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByEmailIncludeInactive(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserExecutionStats(ctx context.Context, ownerID uuid.UUID) (GetUserExecutionStatsRow, error)
+	GetUserRefreshTokens(ctx context.Context, userID uuid.UUID) ([]RefreshToken, error)
+	RevokeAllUserRefreshTokens(ctx context.Context, userID uuid.UUID) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	UpdateExecutionComplete(ctx context.Context, arg UpdateExecutionCompleteParams) (Execution, error)
 	UpdateExecutionCostEstimate(ctx context.Context, arg UpdateExecutionCostEstimateParams) (Execution, error)
 	UpdateExecutionScheduling(ctx context.Context, arg UpdateExecutionSchedulingParams) (Execution, error)
 	UpdateExecutionStart(ctx context.Context, arg UpdateExecutionStartParams) (Execution, error)
 	UpdateExecutionStatus(ctx context.Context, arg UpdateExecutionStatusParams) (Execution, error)
 	UpdateJob(ctx context.Context, arg UpdateJobParams) (Job, error)
+	UpdateRefreshTokenLastUsed(ctx context.Context, id uuid.UUID) error
+	UpdateUserEmailVerified(ctx context.Context, arg UpdateUserEmailVerifiedParams) error
+	UpdateUserLastLogin(ctx context.Context, id uuid.UUID) error
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (User, error)
 }
 

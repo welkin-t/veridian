@@ -7,6 +7,7 @@ package database
 import (
 	"database/sql/driver"
 	"fmt"
+	"net/netip"
 	"time"
 
 	"github.com/google/uuid"
@@ -136,6 +137,28 @@ type Job struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// Stores refresh tokens for JWT authentication
+type RefreshToken struct {
+	// Unique refresh token identifier
+	ID uuid.UUID `json:"id"`
+	// Reference to users table
+	UserID uuid.UUID `json:"user_id"`
+	// SHA-256 hash of the refresh token
+	TokenHash string `json:"token_hash"`
+	// When this refresh token expires
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	// When this refresh token was created
+	CreatedAt time.Time `json:"created_at"`
+	// When this refresh token was last used
+	LastUsed pgtype.Timestamptz `json:"last_used"`
+	// Whether this refresh token has been revoked
+	IsRevoked bool `json:"is_revoked"`
+	// User agent of the client that created this token
+	UserAgent *string `json:"user_agent"`
+	// IP address of the client that created this token
+	IpAddress *netip.Addr `json:"ip_address"`
+}
+
 // Stores basic user account information
 type User struct {
 	// Unique user identifier using UUID
@@ -148,6 +171,12 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	// Last account update timestamp
 	UpdatedAt time.Time `json:"updated_at"`
+	// Whether the user has verified their email address
+	EmailVerified bool `json:"email_verified"`
+	// Timestamp of the user's last successful login
+	LastLogin pgtype.Timestamptz `json:"last_login"`
+	// Whether the user account is active (not suspended/disabled)
+	IsActive bool `json:"is_active"`
 }
 
 // User optimization preferences and weights
