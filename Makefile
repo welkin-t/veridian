@@ -1,9 +1,21 @@
-.PHONY: run-backend backend-tidy docker-build-backend run-frontend run-frontend-dev docker-build-frontend compose-up compose-up-logs compose-up-prod compose-down compose-down-volumes compose-logs compose-watch compose-test compose-security-scan compose-clean compose-smoke-test
+.PHONY: run-backend backend-tidy backend-migrate backend-migrate-status backend-migrate-reset docker-build-backend run-frontend run-frontend-dev docker-build-frontend compose-up compose-up-logs compose-up-prod compose-down compose-down-volumes compose-logs compose-watch compose-test compose-security-scan compose-clean compose-smoke-test
 
 # Backend targets
 # Run the backend API server
 run-backend:
 	cd backend && go run ./api
+
+# Run database migrations
+backend-migrate:
+	cd backend && go run ./cmd/migrate/main.go
+
+# Check migration status
+backend-migrate-status:
+	cd backend && goose -dir sql/schemas postgres "$(DATABASE_URL)" status
+
+# Reset database (DANGEROUS: drops all data)
+backend-migrate-reset:
+	cd backend && goose -dir sql/schemas postgres "$(DATABASE_URL)" reset
 
 # Tidy up backend dependencies
 backend-tidy:

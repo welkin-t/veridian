@@ -32,18 +32,34 @@ RUN --mount=type=cache,target=/go/pkg/mod \
         -o /out/backend \
         ./api
 
+# Build migration binary
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go build \
+        -trimpath \
+        -buildvcs=false \
+        -ldflags="-s -w" \
+        -o /out/migrate \
+        ./cmd/migrate
+
 # ---------- Runtime stage -------------------------------------------------
 FROM alpine:3.19 AS runtime
 
-# Install ca-certificates and curl for health checks
-RUN apk add --no-cache ca-certificates curl
+# Install runtime dependencies
+RUN apk add --no-cache ca-certificates curl postgresql-client bash
 
-# Copy binary
+# Copy binaries and SQL files
 COPY --from=builder /out/backend /app/backend
+COPY --from=builder /out/migrate /app/migrate
+COPY --from=builder /src/sql /app/sql
+
+# Copy and make start script executable
+COPY scripts/start.sh /app/start.sh
+RUN chmod +x /app/start.sh
 
 # Security: Run as non-root user
 USER 65532:65532
 WORKDIR /app
 EXPOSE 8080
 
-ENTRYPOINT ["/app/backend"]
+ENTRYPOINT ["/app/start.sh"]

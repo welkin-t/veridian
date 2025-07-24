@@ -1,0 +1,52 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "./queries"
+    schema: "./schemas"
+    gen:
+      go:
+        package: "database"
+        out: "../internal/database"
+        sql_package: "pgx/v5"
+        emit_json_tags: true
+        emit_prepared_queries: false
+        emit_interface: true
+        emit_exact_table_names: false
+        emit_empty_slices: true
+        emit_exported_queries: false
+        emit_result_struct_pointers: false
+        emit_params_struct_pointers: false
+        emit_methods_with_db_argument: false
+        emit_pointers_for_null_types: true
+        emit_enum_valid_method: true
+        emit_all_enum_values: true
+        json_tags_case_style: "snake"
+        overrides:
+          - column: "*.id"
+            go_type: "github.com/google/uuid.UUID"
+          - column: "*.user_id"
+            go_type: "github.com/google/uuid.UUID"
+          - column: "*.job_id"
+            go_type: "github.com/google/uuid.UUID"
+          - column: "*.owner_id"
+            go_type: "github.com/google/uuid.UUID"
+          - column: "*.created_at"
+            go_type: "time.Time"
+          - column: "*.updated_at"
+            go_type: "time.Time"
+          - column: "*.chosen_at"
+            go_type: "github.com/guregu/null/v6.Time"
+          - column: "*.started_at"
+            go_type: "github.com/guregu/null/v6.Time"
+          - column: "*.completed_at"
+            go_type: "github.com/guregu/null/v6.Time"
+          - column: "*.cost_estimate_usd"
+            go_type: "github.com/guregu/null/v6.Float"
+          - column: "*.cost_actual_usd"
+            go_type: "github.com/guregu/null/v6.Float"
+          - column: "*.carbon_intensity_g_kwh"
+            go_type: "github.com/guregu/null/v6.Float"
+          - column: "*.carbon_emitted_kg"
+            go_type: "github.com/guregu/null/v6.Float"
+          - column: "*.exit_code"
+            go_type: "github.com/guregu/null/v6.Int"

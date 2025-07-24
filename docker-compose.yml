@@ -17,6 +17,7 @@ services:
     environment:
       - GIN_MODE=debug
       - LOG_LEVEL=debug
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-veridian}:${POSTGRES_PASSWORD:-veridian_dev_password}@db:5432/${POSTGRES_DB:-veridian}?sslmode=disable
     networks:
       - veridian-net
     # Resource limits to prevent host starvation
@@ -52,6 +53,9 @@ services:
         - action: sync+restart
           path: ./backend/api
           target: /src/api
+    depends_on:
+      db:
+        condition: service_healthy
     
   frontend:
     build:
@@ -110,6 +114,52 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      db:
+        condition: service_healthy
+
+  # PostgreSQL Database
+  db:
+    image: postgres:16.2-alpine
+    container_name: veridian-postgres
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Override with .env values
+      - POSTGRES_DB=${POSTGRES_DB:-veridian}
+      - POSTGRES_USER=${POSTGRES_USER:-veridian}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-veridian_dev_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Note: No longer mounting schemas to docker-entrypoint-initdb.d
+      # Goose migrations are handled by the backend service
+    networks:
+      - veridian-net
+    ports:
+      - "5432:5432"  # Remove in production, keep internal
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    # Health check using pg_isready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-veridian} -d ${POSTGRES_DB:-veridian}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    # Security: PostgreSQL handles user switching internally
+    # user: "999:999"  # Commented out - causes permission issues with volumes
+    # Security enhancements
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run/postgresql:noexec,nosuid,size=10m
 
   # Production frontend service (use with --profile prod)
   frontend-prod:
@@ -158,6 +208,16 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+# Named volumes for data persistence
+volumes:
+  pgdata:
+    driver: local
+    # Optional: specify driver options for production
+    # driver_opts:
+    #   type: none
+    #   o: bind
+    #   device: /var/lib/docker/volumes/veridian_pgdata
 
 # Explicit network definition for isolation
 networks:
