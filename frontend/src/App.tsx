@@ -1,16 +1,28 @@
 
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { LoginPage, RegisterPage, DashboardPage } from './pages';
 
 function App() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="text-center p-8 bg-white rounded-xl shadow-xl max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Veridian Dashboard</h1>
-        <p className="text-gray-600">
-          Sustainable cloud job scheduling platform
-        </p>
-      </div>
+    <div className="dark">
+      <Router>
+        <Routes>
+          {/* Redirect root to login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          
+          {/* Auth routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          
+          {/* Protected route - Dashboard */}
+          <Route path="/dashboard" element={<DashboardPage />} />
+          
+          {/* Catch all - redirect to login */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
