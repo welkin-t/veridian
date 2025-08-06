@@ -54,8 +54,9 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
         localStorage.setItem('refresh_token', response.refreshToken);
       }
       
-      // On successful login, navigate to dashboard
-      navigate('/dashboard');
+      // Navigate to intended destination or dashboard
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your credentials and try again.';
       setServerError(errorMessage);

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, AlertCircle, CheckCircle, Shield, User, Mail, Lock, Building } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, CheckCircle, Shield, Mail, Lock } from 'lucide-react';
 import { registerSchema, checkPasswordStrength, type RegisterFormData } from '@/lib/validation';
 
 // --- TYPE DEFINITIONS ---
@@ -120,9 +120,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      name: '',
       email: '',
-      company: '',
       password: '',
       confirmPassword: '',
       acceptTerms: false,
@@ -147,25 +145,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
-            {/* Full Name */}
-            <div className="animate-fade-in animate-delay-300 space-y-1">
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Full Name
-              </label>
-              <GlassInputWrapper hasError={!!errors.name}>
-                <input 
-                  {...register('name')}
-                  type="text" 
-                  placeholder="Enter your full name" 
-                  className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none placeholder:text-muted-foreground" 
-                />
-              </GlassInputWrapper>
-              <FieldError message={errors.name?.message} />
-            </div>
-
             {/* Email */}
-            <div className="animate-fade-in animate-delay-400 space-y-1">
+            <div className="animate-fade-in animate-delay-300 space-y-1">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Email Address
@@ -181,25 +162,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
               <FieldError message={errors.email?.message} />
             </div>
 
-            {/* Company */}
-            <div className="animate-fade-in animate-delay-500 space-y-1">
-              <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                Company
-              </label>
-              <GlassInputWrapper hasError={!!errors.company}>
-                <input 
-                  {...register('company')}
-                  type="text" 
-                  placeholder="Enter your company name" 
-                  className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none placeholder:text-muted-foreground" 
-                />
-              </GlassInputWrapper>
-              <FieldError message={errors.company?.message} />
-            </div>
-
             {/* Password */}
-            <div className="animate-fade-in animate-delay-600 space-y-1">
+            <div className="animate-fade-in animate-delay-400 space-y-1">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Lock className="w-4 h-4" />
                 Password
@@ -222,7 +186,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
             </div>
 
             {/* Confirm Password */}
-            <div className="animate-fade-in animate-delay-700 space-y-1">
+            <div className="animate-fade-in animate-delay-500 space-y-1">
               <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <Shield className="w-4 h-4" />
                 Confirm Password
@@ -244,7 +208,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
             </div>
 
             {/* Terms & Conditions */}
-            <div className="animate-fade-in animate-delay-800 space-y-1">
+            <div className="animate-fade-in animate-delay-600 space-y-1">
               <label className="flex items-start gap-3 cursor-pointer text-sm">
                 <input 
                   {...register('acceptTerms')}
@@ -261,7 +225,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
             <button 
               type="submit" 
               disabled={isSubmitting || isLoading}
-              className="animate-fade-in animate-delay-900 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="animate-fade-in animate-delay-700 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isSubmitting || isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -274,17 +238,17 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
             </button>
           </form>
 
-          <div className="animate-fade-in animate-delay-1000 relative flex items-center justify-center">
+          <div className="animate-fade-in animate-delay-800 relative flex items-center justify-center">
             <span className="w-full border-t border-border"></span>
             <span className="px-4 text-sm text-muted-foreground bg-background absolute">Or continue with</span>
           </div>
 
-          <button onClick={onGoogleSignIn} className="animate-fade-in animate-delay-1100 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-secondary transition-colors">
+          <button onClick={onGoogleSignIn} className="animate-fade-in animate-delay-900 w-full flex items-center justify-center gap-3 border border-border rounded-2xl py-4 hover:bg-secondary transition-colors">
             <GoogleIcon />
             Continue with Google
           </button>
 
-          <p className="animate-fade-in animate-delay-1200 text-center text-sm text-muted-foreground">
+          <p className="animate-fade-in animate-delay-1000 text-center text-sm text-muted-foreground">
             Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSignInInstead?.(); }} className="text-primary hover:underline transition-colors">Sign In</a>
           </p>
         </div>

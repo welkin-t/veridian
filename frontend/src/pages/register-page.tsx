@@ -18,21 +18,22 @@ export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
     setIsLoading(true);
 
     try {
-      // Call the backend API with the validated data
+      // Call the backend API with the simplified data (only email and password)
       const registerData = {
-        firstName: data.name.split(' ')[0] || data.name,
-        lastName: data.name.split(' ').slice(1).join(' ') || '',
         email: data.email,
-        company: data.company,
         password: data.password,
       };
       
-      await apiClient.register(registerData);
+      const response = await apiClient.register(registerData);
       
-      // On successful registration, navigate to login
-      navigate('/login', { 
-        state: { message: 'Account created successfully! Please log in.' }
-      });
+      // Store auth tokens from registration response
+      if (response.accessToken && response.refreshToken) {
+        localStorage.setItem('auth_token', response.accessToken);
+        localStorage.setItem('refresh_token', response.refreshToken);
+      }
+      
+      // On successful registration, navigate directly to dashboard
+      navigate('/dashboard');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
       setServerError(errorMessage);

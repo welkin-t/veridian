@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { decodeJWT, isTokenExpired } from '@/lib/jwt-utils';
 import type { 
   AuthContextType, 
   AuthState, 
@@ -36,20 +37,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const refreshToken = localStorage.getItem('refresh_token');
       
       if (token && refreshToken) {
-        // TODO: Validate token with backend or decode JWT to get user info
-        // For now, just set authenticated state
-        setState(prev => ({
-          ...prev,
-          isAuthenticated: true,
-          isLoading: false,
-        }));
-      } else {
-        setState(prev => ({
-          ...prev,
-          isAuthenticated: false,
-          isLoading: false,
-        }));
+        // Check if token is valid and not expired
+        if (!isTokenExpired(token)) {
+          const payload = decodeJWT(token);
+          if (payload) {
+            setState({
+              user: {
+                id: payload.sub,
+                email: payload.email,
+                emailVerified: true, // We'll assume verified if they have a valid token
+                isActive: true,
+                createdAt: new Date(payload.iat * 1000).toISOString(),
+                updatedAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString(),
+              },
+              isAuthenticated: true,
+              isLoading: false,
+            });
+            return;
+          }
+        }
+        
+        // Token is expired or invalid - clear storage
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
       }
+      
+      setState(prev => ({
+        ...prev,
+        isAuthenticated: false,
+        isLoading: false,
+      }));
     };
 
     checkAuth();
@@ -103,8 +121,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = (): void => {
-    apiClient.logout(); // This clears localStorage
+  const logout = async (): Promise<void> => {
+    try {
+      // Call backend logout endpoint
+      await apiClient.logout();
+    } catch (error) {
+      // Even if logout fails on server, we should clear local state
+      console.warn('Logout request failed:', error);
+    }
+    
+    // Clear local state regardless of backend response
     setState({
       user: null,
       isAuthenticated: false,

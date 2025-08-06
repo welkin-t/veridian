@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth-context';
 import { 
   Leaf, 
   LogOut, 
   User, 
   Mail, 
-  Building, 
   Calendar,
   Activity,
   TrendingDown,
@@ -18,34 +18,18 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 
 interface DashboardPageProps {}
 
-interface UserInfo {
-  name: string;
-  email: string;
-  company?: string;
-  joinDate: string;
-}
-
 export const DashboardPage: React.FC<DashboardPageProps> = () => {
   const navigate = useNavigate();
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    // Simulate getting user info from auth token/API
-    const mockUserInfo: UserInfo = {
-      name: "Test User",
-      email: localStorage.getItem('test_email') || "user@example.com",
-      company: localStorage.getItem('test_company') || "Test Company",
-      joinDate: new Date().toISOString().split('T')[0],
-    };
-    setUserInfo(mockUserInfo);
-
     // Update current time every minute
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -54,12 +38,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleLogout = () => {
-    // Clear auth token and user data
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('test_email');
-    localStorage.removeItem('test_company');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Force navigation even if logout fails
+      navigate('/login');
+    }
   };
 
   const handleProfile = () => {
@@ -101,7 +88,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
     }
   ];
 
-  if (!userInfo) {
+  const getUserDisplayName = (user: any) => {
+    if (!user) return 'User';
+    // Try to extract name from email if no name field
+    const emailName = user.email?.split('@')[0] || 'User';
+    return emailName.charAt(0).toUpperCase() + emailName.slice(1);
+  };
+
+  const getUserInitials = (user: any) => {
+    if (!user) return 'U';
+    const name = getUserDisplayName(user);
+    return name.charAt(0).toUpperCase();
+  };
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -149,12 +149,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-bold text-foreground mb-2">
-                Welcome back, {userInfo.name.split(' ')[0]}! 👋
-              </h2>
-              <p className="text-muted-foreground">
-                Here's what's happening with your cloud workloads today
-              </p>
+                            <div className="text-left">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Welcome back, {getUserDisplayName(user)}! 👋
+                </h2>
+                <p className="text-muted-foreground">
+                  Here's your cloud optimization dashboard
+                </p>
+              </div>
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">
@@ -181,7 +183,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
             <CardTitle className="flex items-center gap-2">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  {userInfo.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  {getUserInitials(user)}
                 </AvatarFallback>
               </Avatar>
               Profile Information
@@ -193,25 +195,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
                 <Mail className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Email</p>
-                  <p className="text-sm text-muted-foreground">{userInfo.email}</p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
               </div>
               
-              {userInfo.company && (
-                <div className="flex items-center gap-3">
-                  <Building className="w-4 h-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Company</p>
-                    <p className="text-sm text-muted-foreground">{userInfo.company}</p>
-                  </div>
-                </div>
-              )}
+              {/* Company field removed - not in User model */}
               
               <div className="flex items-center gap-3">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">Member Since</p>
-                  <p className="text-sm text-muted-foreground">{userInfo.joinDate}</p>
+                  <p className="text-sm text-muted-foreground">{new Date(user.createdAt).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
