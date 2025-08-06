@@ -1,58 +1,107 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { AlertCircle, Mail, Lock, User, Building2, Leaf } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useNavigate } from 'react-router-dom';
+import { Leaf } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RegisterPage, type RegisterFormErrors } from '@/components/ui/register-form';
 import { apiClient } from '@/lib/api-client';
-
-// Form validation schema
-const registerSchema = z.object({
-  firstName: z.string().min(2, 'First name must be at least 2 characters'),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  confirmPassword: z.string(),
-  company: z.string().min(2, 'Company name must be at least 2 characters'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
-
-type RegisterFormData = z.infer<typeof registerSchema>;
 
 interface RegisterPageProps {}
 
-export const RegisterPage: React.FC<RegisterPageProps> = () => {
+export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [formErrors, setFormErrors] = useState<RegisterFormErrors>({});
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-  });
+  const validateForm = (data: { [key: string]: FormDataEntryValue | null }) => {
+    const errors: RegisterFormErrors = {};
 
-  const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true);
+    // First Name validation
+    if (!data.firstName || (data.firstName as string).trim().length < 2) {
+      errors.firstName = 'First name must be at least 2 characters';
+    }
+
+    // Last Name validation
+    if (!data.lastName || (data.lastName as string).trim().length < 2) {
+      errors.lastName = 'Last name must be at least 2 characters';
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!data.email || !emailRegex.test(data.email as string)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    // Company validation
+    if (!data.company || (data.company as string).trim().length < 2) {
+      errors.company = 'Company name must be at least 2 characters';
+    }
+
+    // Password validation
+    const password = data.password as string;
+    if (!password) {
+      errors.password = 'Password is required';
+    } else {
+      const passwordErrors = [];
+      if (password.length < 8) passwordErrors.push('at least 8 characters');
+      if (!/[A-Z]/.test(password)) passwordErrors.push('one uppercase letter');
+      if (!/[a-z]/.test(password)) passwordErrors.push('one lowercase letter');
+      if (!/[0-9]/.test(password)) passwordErrors.push('one number');
+      
+      if (passwordErrors.length > 0) {
+        errors.password = `Password must contain ${passwordErrors.join(', ')}`;
+      }
+    }
+
+    // Confirm Password validation
+    if (!data.confirmPassword) {
+      errors.confirmPassword = 'Please confirm your password';
+    } else if (data.password !== data.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Terms acceptance validation
+    if (!data.acceptTerms) {
+      errors.acceptTerms = 'You must accept the terms to continue';
+    }
+
+    return errors;
+  };
+
+  const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setServerError(null);
+    setFormErrors({});
+    setIsLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+    const data = {
+      firstName: formData.get('firstName'),
+      lastName: formData.get('lastName'),
+      email: formData.get('email'),
+      company: formData.get('company'),
+      password: formData.get('password'),
+      confirmPassword: formData.get('confirmPassword'),
+      acceptTerms: formData.get('acceptTerms'),
+    };
+
+    // Client-side validation
+    const validationErrors = validateForm(data);
+    if (Object.keys(validationErrors).length > 0) {
+      setFormErrors(validationErrors);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       // Remove confirmPassword from data before sending to API
-      const { confirmPassword, ...registerData } = data;
+      const registerData = {
+        firstName: data.firstName as string,
+        lastName: data.lastName as string,
+        email: data.email as string,
+        company: data.company as string,
+        password: data.password as string,
+      };
       
       // Call the backend API
       await apiClient.register(registerData);
@@ -70,199 +119,42 @@ export const RegisterPage: React.FC<RegisterPageProps> = () => {
     }
   };
 
+  const handleGoogleRegister = () => {
+    console.log("Continue with Google clicked");
+    // TODO: Implement Google OAuth
+    alert("Google Registration coming soon!");
+  };
+
+  const handleSignIn = () => {
+    navigate('/login');
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Veridian Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center space-x-2">
-              <Leaf className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">Veridian</h1>
-            </div>
+    <div className="bg-background text-foreground">
+      {/* Error Messages */}
+      {serverError && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md">
+          <Alert variant="destructive">
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <RegisterPage
+        title={
+          <div className="flex items-center gap-3 justify-center">
+            <Leaf className="h-10 w-10 text-primary" />
+            <span className="font-light text-foreground tracking-tighter">Join Veridian</span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Intelligent Carbon-Aware Cloud Workload Scheduler
-          </p>
-        </div>
-
-        {/* Registration Form */}
-        <Card className="border-border">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-semibold">Create Account</CardTitle>
-            <CardDescription>
-              Join Veridian to optimize your cloud workloads for cost and carbon efficiency
-            </CardDescription>
-          </CardHeader>
-          
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              {/* Server Error Alert */}
-              {serverError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{serverError}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Name Fields Row */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="firstName"
-                      type="text"
-                      placeholder="John"
-                      className="pl-10"
-                      {...register('firstName')}
-                    />
-                  </div>
-                  {errors.firstName && (
-                    <p className="text-sm text-destructive">{errors.firstName.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="lastName"
-                      type="text"
-                      placeholder="Doe"
-                      className="pl-10"
-                      {...register('lastName')}
-                    />
-                  </div>
-                  {errors.lastName && (
-                    <p className="text-sm text-destructive">{errors.lastName.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john.doe@company.com"
-                    className="pl-10"
-                    {...register('email')}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
-                )}
-              </div>
-
-              {/* Company Field */}
-              <div className="space-y-2">
-                <Label htmlFor="company">Company</Label>
-                <div className="relative">
-                  <Building2 className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="company"
-                    type="text"
-                    placeholder="Your Company Name"
-                    className="pl-10"
-                    {...register('company')}
-                  />
-                </div>
-                {errors.company && (
-                  <p className="text-sm text-destructive">{errors.company.message}</p>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Create a strong password"
-                    className="pl-10"
-                    {...register('password')}
-                  />
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
-                )}
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Confirm your password"
-                    className="pl-10"
-                    {...register('confirmPassword')}
-                  />
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-
-              {/* Password Requirements */}
-              <div className="text-xs text-muted-foreground space-y-1 mb-6">
-                <p>Password must contain:</p>
-                <ul className="list-disc list-inside space-y-1 ml-2">
-                  <li>At least 8 characters</li>
-                  <li>One uppercase letter</li>
-                  <li>One lowercase letter</li>
-                  <li>One number</li>
-                </ul>
-              </div>
-            </CardContent>
-
-            <CardFooter className="flex flex-col space-y-4">
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
-                    Creating Account...
-                  </>
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
-              
-              <div className="text-sm text-center text-muted-foreground">
-                Already have an account?{' '}
-                <Link 
-                  to="/login" 
-                  className="text-primary hover:underline font-medium transition-colors"
-                >
-                  Sign in
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-8 text-xs text-muted-foreground">
-          <p>
-            By creating an account, you agree to optimize your cloud workloads 
-            for a more sustainable future.
-          </p>
-        </div>
-      </div>
+        }
+        description="Create your account to optimize cloud workloads for cost and carbon efficiency"
+        onRegister={handleRegister}
+        onGoogleRegister={handleGoogleRegister}
+        onSignIn={handleSignIn}
+        showPasswordRules={true}
+        errors={formErrors}
+        isLoading={isLoading}
+      />
     </div>
   );
 };

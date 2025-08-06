@@ -1,53 +1,96 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { AlertCircle, Mail, Lock, Leaf } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Leaf } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SignInPage, type Testimonial, type LoginFormErrors } from '@/components/ui/sign-in';
 import { apiClient } from '@/lib/api-client';
 
-// Form validation schema
-const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
-});
+const testimonials: Testimonial[] = [
+  {
+    avatarSrc: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=100&q=80",
+    name: "Sarah Chen",
+    handle: "@sarahtech",
+    text: "Veridian reduced our cloud costs by 40% while cutting carbon emissions. Game-changer for sustainable ops!"
+  },
+  {
+    avatarSrc: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&q=80",
+    name: "Marcus Johnson",
+    handle: "@marcuscloud",
+    text: "Smart scheduling means our workloads run when energy is cleanest and cheapest. Perfect platform!"
+  },
+  {
+    avatarSrc: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&q=80",
+    name: "David Martinez",
+    handle: "@davidops",
+    text: "The carbon-aware scheduling is brilliant. We're meeting sustainability goals without sacrificing performance."
+  },
+];
 
-type LoginFormData = z.infer<typeof loginSchema>;
+// Helper function to validate email format
+const isValidEmail = (email: string) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
 
 interface LoginPageProps {}
 
 export const LoginPage: React.FC<LoginPageProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<LoginFormErrors>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get success message from registration redirect
   const successMessage = location.state?.message;
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-  });
+  const validateForm = (formData: FormData): LoginFormErrors => {
+    const errors: LoginFormErrors = {};
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
+    // Email validation
+    if (!email) {
+      errors.email = 'Email address is required';
+    } else if (!isValidEmail(email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    // Password validation
+    if (!password) {
+      errors.password = 'Password is required';
+    } else if (password.length < 6) {
+      errors.password = 'Password must be at least 6 characters long';
+    }
+
+    return errors;
+  };
+
+  const handleSignIn = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setServerError(null);
+    setErrors({});
+    setIsLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+    const validationErrors = validateForm(formData);
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setIsLoading(false);
+      return;
+    }
+
+    const data = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+    };
 
     try {
       // Call the backend API
       const response = await apiClient.login(data);
       
-      // Store auth token (assuming it's returned in response)
+      // Store auth token
       if (response.token) {
         localStorage.setItem('auth_token', response.token);
       }
@@ -55,140 +98,72 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       // On successful login, navigate to dashboard
       navigate('/dashboard');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your credentials and try again.';
-      setServerError(errorMessage);
+      // Set field-specific error for wrong credentials
+      if (error instanceof Error && error.message.includes('Invalid credentials')) {
+        setErrors({ email: 'Invalid email or password' });
+      } else {
+        const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your credentials and try again.';
+        setServerError(errorMessage);
+      }
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleGoogleSignIn = () => {
+    console.log("Continue with Google clicked");
+    // TODO: Implement Google OAuth
+    alert("Google Sign-In coming soon!");
+  };
+  
+  const handleResetPassword = () => {
+    navigate('/forgot-password');
+  };
+
+  const handleCreateAccount = () => {
+    navigate('/register');
+  };
+
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Veridian Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
-            <div className="flex items-center space-x-2">
-              <Leaf className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-foreground">Veridian</h1>
-            </div>
+    <div className="bg-background text-foreground">
+      {/* Success/Error Messages */}
+      {successMessage && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md">
+          <Alert className="border-primary/20 bg-primary/5">
+            <Leaf className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary">
+              {successMessage}
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+      
+      {serverError && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md">
+          <Alert variant="destructive">
+            <AlertDescription>{serverError}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      <SignInPage
+        title={
+          <div className="flex items-center gap-3">
+            <Leaf className="h-10 w-10 text-primary" />
+            <span className="font-light text-foreground tracking-tighter">Welcome to Veridian</span>
           </div>
-          <p className="text-muted-foreground text-sm">
-            Intelligent Carbon-Aware Cloud Workload Scheduler
-          </p>
-        </div>
-
-        {/* Login Form */}
-        <Card className="border-border">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-semibold">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to your Veridian account to continue optimizing your cloud workloads
-            </CardDescription>
-          </CardHeader>
-          
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <CardContent className="space-y-4">
-              {/* Success Message from Registration */}
-              {successMessage && (
-                <Alert className="border-primary/20 bg-primary/5">
-                  <AlertCircle className="h-4 w-4 text-primary" />
-                  <AlertDescription className="text-primary">
-                    {successMessage}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Server Error Alert */}
-              {serverError && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{serverError}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john.doe@company.com"
-                    className="pl-10"
-                    {...register('email')}
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link 
-                    to="/forgot-password" 
-                    className="text-xs text-primary hover:underline transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    className="pl-10"
-                    {...register('password')}
-                  />
-                </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
-                )}
-              </div>
-            </CardContent>
-
-            <CardFooter className="flex flex-col space-y-4 pt-6">
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground mr-2"></div>
-                    Signing In...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </Button>
-              
-              <div className="text-sm text-center text-muted-foreground">
-                Don't have an account?{' '}
-                <Link 
-                  to="/register" 
-                  className="text-primary hover:underline font-medium transition-colors"
-                >
-                  Create account
-                </Link>
-              </div>
-            </CardFooter>
-          </form>
-        </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-8 text-xs text-muted-foreground">
-          <p>
-            Secure access to your carbon-optimized cloud management platform.
-          </p>
-        </div>
-      </div>
+        }
+        description="Sign in to optimize your cloud workloads for cost and carbon efficiency"
+        heroImageSrc="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=2160&q=80"
+        testimonials={testimonials}
+        onSignIn={handleSignIn}
+        onGoogleSignIn={handleGoogleSignIn}
+        onResetPassword={handleResetPassword}
+        onCreateAccount={handleCreateAccount}
+        errors={errors}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
