@@ -1,3 +1,3 @@
-export { LoginPage } from './LoginPage';
-export { RegisterPage } from './RegisterPage';
-export { DashboardPage } from './DashboardPage';
+export { RegisterPage } from './register-page';
+export { LoginPage } from './login-page';
+export { DashboardPage } from './dashboard-page';
