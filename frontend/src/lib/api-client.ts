@@ -65,24 +65,93 @@ class ApiClient {
 
   // Authentication endpoints
   async register(data: RegisterRequest): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/auth/register', {
+    const response = await this.request<{
+      access_token: string;
+      refresh_token: string;
+      expires_at: string;
+      user: {
+        id: string;
+        email: string;
+        email_verified: boolean;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        last_login?: string;
+      };
+    }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
+    // Transform backend response to frontend types
+    return {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      expiresAt: response.expires_at,
+      user: {
+        id: response.user.id,
+        email: response.user.email,
+        emailVerified: response.user.email_verified,
+        isActive: response.user.is_active,
+        createdAt: response.user.created_at,
+        updatedAt: response.user.updated_at,
+        lastLogin: response.user.last_login || null,
+      },
+    };
   }
 
   async login(data: LoginRequest): Promise<LoginResponse> {
-    return this.request<LoginResponse>('/auth/login', {
+    const response = await this.request<{
+      access_token: string;
+      refresh_token: string;
+      expires_at: string;
+      user: {
+        id: string;
+        email: string;
+        email_verified: boolean;
+        is_active: boolean;
+        created_at: string;
+        updated_at: string;
+        last_login?: string;
+      };
+    }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
+    // Transform backend response to frontend types
+    return {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      expiresAt: response.expires_at,
+      user: {
+        id: response.user.id,
+        email: response.user.email,
+        emailVerified: response.user.email_verified,
+        isActive: response.user.is_active,
+        createdAt: response.user.created_at,
+        updatedAt: response.user.updated_at,
+        lastLogin: response.user.last_login || null,
+      },
+    };
   }
 
   async refreshToken(data: RefreshTokenRequest): Promise<RefreshTokenResponse> {
-    return this.request<RefreshTokenResponse>('/auth/refresh', {
+    const response = await this.request<{
+      access_token: string;
+      refresh_token: string;
+      expires_at: string;
+    }>('/auth/refresh', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ refresh_token: data.refreshToken }),
     });
+
+    // Transform backend response to frontend types
+    return {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      expiresAt: response.expires_at,
+    };
   }
 
   async changePassword(data: ChangePasswordRequest): Promise<void> {
@@ -100,7 +169,7 @@ class ApiClient {
         await this.request<void>('/auth/logout', {
           method: 'POST',
           headers: this.getAuthHeaders(),
-          body: JSON.stringify({ refreshToken }),
+          body: JSON.stringify({ refresh_token: refreshToken }),
         });
       } catch (error) {
         // Even if logout fails on server, we should clear local storage

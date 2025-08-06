@@ -8,12 +8,11 @@ export const loginSchema = z.object({
     .email('Please enter a valid email address'),
   password: z
     .string()
-    .min(1, 'Password is required')
-    .min(6, 'Password must be at least 6 characters long'),
+    .min(1, 'Password is required'),
   rememberMe: z.boolean().optional(),
 });
 
-// Register form validation schema (matches backend RegisterRequest)
+// Register form validation schema 
 export const registerSchema = z.object({
   email: z
     .string()
@@ -23,9 +22,10 @@ export const registerSchema = z.object({
     .string()
     .min(1, 'Password is required')
     .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be no more than 128 characters')
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).*$/,
+      'Password must contain at least one uppercase letter, lowercase letter, number, and special character'
     ),
   confirmPassword: z
     .string()
@@ -48,9 +48,10 @@ export const changePasswordSchema = z.object({
     .string()
     .min(1, 'New password is required')
     .min(8, 'Password must be at least 8 characters')
+    .max(128, 'Password must be no more than 128 characters')
     .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter, and one number'
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).*$/,
+      'Password must contain at least one uppercase letter, lowercase letter, number, and special character'
     ),
   confirmNewPassword: z
     .string()
@@ -114,11 +115,13 @@ export const checkPasswordStrength = (password: string) => {
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /\d/.test(password),
+    special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
   };
 
   const score = Object.values(checks).filter(Boolean).length;
   
-  const strength: 'weak' | 'medium' | 'strong' = score < 2 ? 'weak' : score < 4 ? 'medium' : 'strong';
+  const strength: 'weak' | 'medium' | 'strong' = 
+    score < 3 ? 'weak' : score < 5 ? 'medium' : 'strong';
   
   return {
     checks,

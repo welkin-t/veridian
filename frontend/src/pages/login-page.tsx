@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SignInPage, type Testimonial } from '@/components/ui/sign-in';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 import { type LoginFormData } from '@/lib/validation';
 import greenImage from '@/assets/green.png';
 
@@ -33,6 +33,7 @@ interface LoginPageProps {}
 export const LoginPage: React.FC<LoginPageProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
 
   // Get success message from registration redirect
@@ -42,17 +43,11 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
     setServerError(null);
 
     try {
-      // Call the backend API
-      const response = await apiClient.login({
+      // Use AuthContext login method
+      await login({
         email: data.email,
         password: data.password,
       });
-      
-      // Store auth tokens
-      if (response.accessToken && response.refreshToken) {
-        localStorage.setItem('auth_token', response.accessToken);
-        localStorage.setItem('refresh_token', response.refreshToken);
-      }
       
       // Navigate to intended destination or dashboard
       const from = location.state?.from?.pathname || '/dashboard';

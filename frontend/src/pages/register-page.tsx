@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Leaf } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RegisterPage } from '@/components/ui/register-form';
-import { apiClient } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
 import type { RegisterFormData } from '@/lib/validation';
 
 interface RegisterPageProps {}
 
 export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [serverError, setServerError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,19 +19,11 @@ export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
     setIsLoading(true);
 
     try {
-      // Call the backend API with the simplified data (only email and password)
-      const registerData = {
+      // Use AuthContext register method
+      await register({
         email: data.email,
         password: data.password,
-      };
-      
-      const response = await apiClient.register(registerData);
-      
-      // Store auth tokens from registration response
-      if (response.accessToken && response.refreshToken) {
-        localStorage.setItem('auth_token', response.accessToken);
-        localStorage.setItem('refresh_token', response.refreshToken);
-      }
+      });
       
       // On successful registration, navigate directly to dashboard
       navigate('/dashboard');

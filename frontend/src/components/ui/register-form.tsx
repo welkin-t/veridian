@@ -60,7 +60,7 @@ const PasswordStrengthIndicator = ({ password }: { password: string }) => {
         <div className="flex-1 bg-muted rounded-full h-2">
           <div 
             className={`h-2 rounded-full transition-all duration-300 ${strengthColors[strength]}`}
-            style={{ width: `${(Object.values(checks).filter(Boolean).length / 4) * 100}%` }}
+            style={{ width: `${(Object.values(checks).filter(Boolean).length / 5) * 100}%` }}
           />
         </div>
         <span className={`text-xs font-medium ${strength === 'strong' ? 'text-green-600' : strength === 'medium' ? 'text-yellow-600' : 'text-destructive'}`}>
@@ -84,6 +84,10 @@ const PasswordStrengthIndicator = ({ password }: { password: string }) => {
         <div className={`flex items-center gap-2 ${checks.number ? 'text-green-600' : 'text-muted-foreground'}`}>
           {checks.number ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-muted-foreground/50" />}
           One number
+        </div>
+        <div className={`flex items-center gap-2 ${checks.special ? 'text-green-600' : 'text-muted-foreground'}`}>
+          {checks.special ? <CheckCircle className="w-3 h-3" /> : <div className="w-3 h-3 rounded-full border border-muted-foreground/50" />}
+          One special character (!@#$%^&*...)
         </div>
       </div>
     </div>
