@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { loginSchema, type LoginFormData } from '@/lib/validation';
 
 // --- HELPER COMPONENTS (ICONS) ---
 
@@ -21,21 +24,15 @@ export interface Testimonial {
   text: string;
 }
 
-export interface LoginFormErrors {
-  email?: string;
-  password?: string;
-}
-
 interface SignInPageProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   heroImageSrc?: string;
   testimonials?: Testimonial[];
-  onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSignIn?: (data: LoginFormData) => Promise<void> | void;
   onGoogleSignIn?: () => void;
   onResetPassword?: () => void;
   onCreateAccount?: () => void;
-  errors?: LoginFormErrors;
   isLoading?: boolean;
 }
 
@@ -83,10 +80,28 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   onGoogleSignIn,
   onResetPassword,
   onCreateAccount,
-  errors = {},
   isLoading = false,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
+    if (onSignIn) {
+      await onSignIn(data);
+    }
+  };
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-sans w-[100dvw]">
@@ -97,31 +112,45 @@ export const SignInPage: React.FC<SignInPageProps> = ({
             <h1 className="animate-fade-in animate-delay-100 text-4xl md:text-5xl font-semibold leading-tight">{title}</h1>
             <p className="animate-fade-in animate-delay-200 text-muted-foreground">{description}</p>
 
-            <form className="space-y-5" onSubmit={onSignIn}>
+            <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
               <div className="animate-fade-in animate-delay-300 space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">Email Address</label>
                 <GlassInputWrapper hasError={!!errors.email}>
-                  <input name="email" type="email" placeholder="Enter your email address" className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none placeholder:text-muted-foreground" />
+                  <input 
+                    {...register('email')}
+                    type="email" 
+                    placeholder="Enter your email address" 
+                    className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none placeholder:text-muted-foreground" 
+                  />
                 </GlassInputWrapper>
-                <FieldError message={errors.email} />
+                <FieldError message={errors.email?.message} />
               </div>
 
               <div className="animate-fade-in animate-delay-400 space-y-1">
                 <label className="text-sm font-medium text-muted-foreground">Password</label>
                 <GlassInputWrapper hasError={!!errors.password}>
                   <div className="relative">
-                    <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none placeholder:text-muted-foreground" />
+                    <input 
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'} 
+                      placeholder="Enter your password" 
+                      className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none placeholder:text-muted-foreground" 
+                    />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
                       {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
                     </button>
                   </div>
                 </GlassInputWrapper>
-                <FieldError message={errors.password} />
+                <FieldError message={errors.password?.message} />
               </div>
 
               <div className="animate-fade-in animate-delay-500 flex items-center justify-between text-sm">
                 <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="rememberMe" className="w-4 h-4 text-primary bg-transparent border-2 border-border rounded focus:ring-primary focus:ring-2" />
+                  <input 
+                    {...register('rememberMe')}
+                    type="checkbox" 
+                    className="w-4 h-4 text-primary bg-transparent border-2 border-border rounded focus:ring-primary focus:ring-2" 
+                  />
                   <span className="text-foreground/90">Keep me signed in</span>
                 </label>
                 <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-primary transition-colors">Reset password</a>
@@ -129,10 +158,10 @@ export const SignInPage: React.FC<SignInPageProps> = ({
 
               <button 
                 type="submit" 
-                disabled={isLoading}
+                disabled={isSubmitting || isLoading}
                 className="animate-fade-in animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {isLoading ? (
+                {isSubmitting || isLoading ? (
                   <div className="flex items-center justify-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground"></div>
                     Signing In...

@@ -1,61 +1,44 @@
-// Authentication related types
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  company: string;
-  createdAt: string;
-  updatedAt: string;
-}
+/**
+ * Main types index - re-exports all type modules
+ * This provides a central location for importing types throughout the application
+ */
 
-export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  company: string;
-}
+// Re-export all authentication types
+export type {
+  User,
+  RegisterRequest,
+  LoginRequest,
+  RefreshTokenRequest,
+  ChangePasswordRequest,
+  LoginResponse,
+  RefreshTokenResponse,
+  AuthState,
+  AuthContextType,
+  ApiError,
+  ValidationError,
+  AuthValidationErrors,
+} from './auth';
 
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
+// Re-export all job types
+export type {
+  Job,
+  JobExecution,
+  ExecutionStatus,
+  CreateJobRequest,
+  CreateJobResponse,
+  UpdateJobRequest,
+  JobStats,
+  ExecutionStats,
+} from './job';
 
-export interface AuthResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
-}
+// Re-export all settings types
+export type {
+  UserSettings,
+  UpdateSettingsRequest,
+  UpdateSettingsResponse,
+  SettingsValidation,
+  SettingsFormData,
+} from './settings';
 
-export interface ApiError {
-  message: string;
-  code?: string;
-  field?: string;
-}
-
-// Job related types (for future use)
-export interface Job {
-  id: string;
-  title: string;
-  description: string;
-  dockerImage: string;
-  status: JobStatus;
-  createdAt: string;
-  updatedAt: string;
-  scheduledAt?: string;
-  completedAt?: string;
-  region?: string;
-  costSavings?: number;
-  carbonSavings?: number;
-}
-
-export type JobStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
-
-// Settings related types
-export interface UserSettings {
-  costWeight: number; // 0-1, weight for cost optimization
-  carbonWeight: number; // 0-1, weight for carbon optimization
-  maxDelay: number; // maximum delay in hours
-  preferredRegions: string[];
-}
+// Re-export default settings constant
+export { DEFAULT_SETTINGS } from './settings';
