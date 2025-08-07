@@ -155,10 +155,18 @@ class ApiClient {
   }
 
   async changePassword(data: ChangePasswordRequest): Promise<void> {
-    return this.request<void>('/auth/change-password', {
+    return this.request<void>('/api/v1/auth/change-password', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
+    });
+  }
+
+  // Get user profile (protected route)
+  async getProfile(): Promise<{ user: any }> {
+    return this.request<{ user: any }>('/api/v1/auth/profile', {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
     });
   }
 
@@ -189,7 +197,7 @@ class ApiClient {
 
   // Job management endpoints
   async createJob(data: CreateJobRequest): Promise<CreateJobResponse> {
-    return this.request<CreateJobResponse>('/jobs', {
+    return this.request<CreateJobResponse>('/api/v1/jobs', {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
@@ -197,57 +205,84 @@ class ApiClient {
   }
 
   async getJob(jobId: string): Promise<Job> {
-    return this.request<Job>(`/jobs/${jobId}`, {
+    return this.request<Job>(`/api/v1/jobs/${jobId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
   }
 
-  async getUserJobs(limit?: number): Promise<Job[]> {
+  async getUserJobs(limit?: number): Promise<{ jobs: Job[] }> {
     const params = limit ? `?limit=${limit}` : '';
-    return this.request<Job[]>(`/jobs${params}`, {
+    return this.request<{ jobs: Job[] }>(`/api/v1/jobs${params}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
   }
 
   async updateJob(jobId: string, data: UpdateJobRequest): Promise<Job> {
-    return this.request<Job>(`/jobs/${jobId}`, {
-      method: 'PATCH',
+    return this.request<Job>(`/api/v1/jobs/${jobId}`, {
+      method: 'PUT', // Backend uses PUT, not PATCH
       headers: this.getAuthHeaders(),
       body: JSON.stringify(data),
     });
   }
 
   async deleteJob(jobId: string): Promise<void> {
-    return this.request<void>(`/jobs/${jobId}`, {
+    return this.request<void>(`/api/v1/jobs/${jobId}`, {
       method: 'DELETE',
       headers: this.getAuthHeaders(),
     });
   }
 
+  // Note: This endpoint doesn't exist in backend yet, fallback to empty array
   async getJobExecutions(jobId: string, limit?: number): Promise<JobExecution[]> {
-    const params = limit ? `?limit=${limit}` : '';
-    return this.request<JobExecution[]>(`/jobs/${jobId}/executions${params}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
+    try {
+      const params = limit ? `?limit=${limit}` : '';
+      return this.request<JobExecution[]>(`/api/v1/jobs/${jobId}/executions${params}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+    } catch (error) {
+      console.warn(`Executions endpoint not implemented yet for job ${jobId}`);
+      // Return empty array as fallback
+      return [];
+    }
   }
 
-  // User settings endpoints
+  // User settings endpoints (these don't exist in backend yet)
   async getUserSettings(): Promise<UserSettings> {
-    return this.request<UserSettings>('/settings', {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
+    try {
+      return this.request<UserSettings>('/api/v1/settings', {
+        method: 'GET',
+        headers: this.getAuthHeaders(),
+      });
+    } catch (error) {
+      console.warn('Settings endpoint not implemented yet');
+      // Return default settings as fallback
+      return {
+        id: 'default',
+        userId: 'unknown',
+        costWeight: 0.6,
+        carbonWeight: 0.4,
+        maxDelayHours: 168,
+        preferredRegions: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      } as UserSettings;
+    }
   }
 
   async updateUserSettings(data: UpdateSettingsRequest): Promise<UpdateSettingsResponse> {
-    return this.request<UpdateSettingsResponse>('/settings', {
-      method: 'PATCH',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
-    });
+    try {
+      return this.request<UpdateSettingsResponse>('/api/v1/settings', {
+        method: 'PUT', // Backend would use PUT
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(data),
+      });
+    } catch (error) {
+      console.warn('Settings update endpoint not implemented yet');
+      throw new Error('Settings update not available yet');
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
+import { apiClient } from '@/lib/api-client';
 import { 
   Leaf, 
   LogOut, 
@@ -8,11 +9,13 @@ import {
   Mail, 
   Calendar,
   Activity,
-  TrendingDown,
   Zap,
   Cloud,
   Settings,
-  Bell
+  Bell,
+  BarChart3,
+  Plus,
+  List
 } from 'lucide-react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +23,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
 
 interface DashboardPageProps {}
 
@@ -28,6 +30,38 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [stats, setStats] = useState([
+    {
+      title: "Total Jobs",
+      value: "0",
+      change: "Create your first job",
+      icon: Activity,
+      color: "text-purple-600"
+    },
+    {
+      title: "Recent Jobs",
+      value: "0",
+      change: "Last 7 days",
+      icon: Calendar,
+      color: "text-blue-600"
+    },
+    {
+      title: "System Status",
+      value: "Online",
+      change: "All systems operational",
+      icon: Zap,
+      color: "text-green-600"
+    },
+    {
+      title: "Executions",
+      value: "Coming Soon",
+      change: "Feature in development",
+      icon: Cloud,
+      color: "text-gray-500"
+    }
+  ]);
+  const [recentJobs, setRecentJobs] = useState<any[]>([]);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   useEffect(() => {
     // Update current time every minute
@@ -37,6 +71,77 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    // Load dashboard data
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setIsLoadingStats(true);
+      
+      // Fetch user's jobs - backend returns { jobs: Job[] }
+      const userJobsResponse = await apiClient.getUserJobs(10);
+      console.log('API Response:', userJobsResponse); // Debug log
+      
+      // Backend returns { jobs: Job[] }, extract the jobs array
+      const userJobs = userJobsResponse?.jobs || [];
+      
+      setRecentJobs(userJobs);
+      
+      // Calculate basic stats from jobs (no execution data available yet)
+      const jobStats = {
+        totalJobs: userJobs.length,
+        activeJobs: userJobs.length, // All jobs are considered "active" for now
+        recentJobs: userJobs.filter((job: any) => {
+          const createdAt = new Date(job.createdAt);
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          return createdAt >= sevenDaysAgo;
+        }).length
+      };
+
+      // Update stats with available data
+      setStats([
+        {
+          title: "Total Jobs",
+          value: jobStats.totalJobs.toString(),
+          change: jobStats.totalJobs > 0 ? `${jobStats.totalJobs} jobs created` : "Create your first job",
+          icon: Activity,
+          color: "text-purple-600"
+        },
+        {
+          title: "Recent Jobs",
+          value: jobStats.recentJobs.toString(),
+          change: "Last 7 days",
+          icon: Calendar,
+          color: "text-blue-600"
+        },
+        {
+          title: "System Status",
+          value: "Online",
+          change: "All systems operational",
+          icon: Zap,
+          color: "text-green-600"
+        },
+        {
+          title: "Executions",
+          value: "Coming Soon",
+          change: "Feature in development",
+          icon: Cloud,
+          color: "text-gray-500"
+        }
+      ]);
+      
+    } catch (error) {
+      console.error('Failed to load dashboard data:', error);
+      // Keep default stats if API fails
+      setRecentJobs([]); // Ensure it's always an array
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -56,37 +161,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
   const handleSettings = () => {
     alert('Settings page coming soon!');
   };
-
-  const stats = [
-    {
-      title: "Carbon Saved",
-      value: "2.4 tons CO₂",
-      change: "-15% this month",
-      icon: Leaf,
-      color: "text-green-600"
-    },
-    {
-      title: "Cost Savings",
-      value: "$1,247",
-      change: "-23% this month", 
-      icon: TrendingDown,
-      color: "text-blue-600"
-    },
-    {
-      title: "Active Workloads",
-      value: "12",
-      change: "+3 this week",
-      icon: Activity,
-      color: "text-purple-600"
-    },
-    {
-      title: "Energy Efficiency",
-      value: "94%",
-      change: "+2% this month",
-      icon: Zap,
-      color: "text-yellow-600"
-    }
-  ];
 
   const getUserDisplayName = (user: any) => {
     if (!user) return 'User';
@@ -119,6 +193,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
               <Leaf className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold text-foreground">Veridian</h1>
             </div>
+            
+            {/* Navigation Menu */}
+            <nav className="hidden md:flex items-center space-x-1">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-2"
+              >
+                <BarChart3 className="w-4 h-4" />
+                Dashboard
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/jobs')}
+                className="flex items-center gap-2"
+              >
+                <List className="w-4 h-4" />
+                Jobs
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/jobs/new')}
+                className="flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                New Job
+              </Button>
+            </nav>
             
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="hidden sm:flex">
@@ -232,18 +337,16 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
                       {stat.title}
                     </p>
                     <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className="text-xs text-green-600 mt-1">{stat.change}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{stat.change}</p>
                   </div>
                   <stat.icon className={`w-8 h-8 ${stat.color}`} />
                 </div>
-                {/* Progress bar for demonstration */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs">
-                    <span>Progress</span>
-                    <span>{85 + index * 3}%</span>
+                {/* Loading state */}
+                {isLoadingStats && (
+                  <div className="space-y-2">
+                    <div className="h-2 bg-muted rounded animate-pulse"></div>
                   </div>
-                  <Progress value={85 + index * 3} className="h-2" />
-                </div>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -262,29 +365,56 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Workload "data-processing-job" optimized</p>
-                  <p className="text-xs text-muted-foreground">Saved 0.3 tons CO₂ • 2 minutes ago</p>
+              {!Array.isArray(recentJobs) || recentJobs.length === 0 ? (
+                <div className="text-center py-8">
+                  <Cloud className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No recent activity</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Create your first job to see activity here
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => navigate('/jobs/new')}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Job
+                  </Button>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">New workload "ml-training" scheduled</p>
-                  <p className="text-xs text-muted-foreground">Scheduled for low-carbon hours • 15 minutes ago</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Monthly report generated</p>
-                  <p className="text-xs text-muted-foreground">Carbon savings summary available • 1 hour ago</p>
-                </div>
-              </div>
+              ) : (
+                recentJobs.slice(0, 5).map((job: any) => {
+                  const timeAgo = (dateStr: string) => {
+                    const now = new Date();
+                    const past = new Date(dateStr);
+                    const diffMinutes = Math.floor((now.getTime() - past.getTime()) / (1000 * 60));
+                    
+                    if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+                    const diffHours = Math.floor(diffMinutes / 60);
+                    if (diffHours < 24) return `${diffHours} hours ago`;
+                    const diffDays = Math.floor(diffHours / 24);
+                    return `${diffDays} days ago`;
+                  };
+
+                  return (
+                    <div key={job.id} className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">
+                          Job created: {job.imageUri || 'Custom image'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {timeAgo(job.createdAt)} • Delay tolerance: {job.delayToleranceHours}h
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="outline" className="text-xs">
+                          {job.id.substring(0, 8)}...
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </CardContent>
         </Card>

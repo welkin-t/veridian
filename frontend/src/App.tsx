@@ -2,7 +2,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/lib/auth-context';
 import { ProtectedRoute, PublicRoute } from '@/components/protected-route';
-import { LoginPage, RegisterPage, DashboardPage } from './pages';
+import { LoginPage, RegisterPage, DashboardPage, JobsPage, NewJobPage, JobDetailPage } from './pages';
 
 function App() {
   return (
@@ -29,6 +29,21 @@ function App() {
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs" element={
+              <ProtectedRoute>
+                <JobsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs/new" element={
+              <ProtectedRoute>
+                <NewJobPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/jobs/:id" element={
+              <ProtectedRoute>
+                <JobDetailPage />
               </ProtectedRoute>
             } />
             
