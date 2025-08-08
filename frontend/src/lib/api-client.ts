@@ -58,6 +58,67 @@ class ApiClient {
     }
   }
 
+  // --- Mapping helpers: backend (snake_case) <-> frontend (camelCase) ---
+  private mapJobFromBackend(job: any): Job {
+    return {
+      id: job.id,
+      ownerId: job.owner_id,
+      imageUri: job.image_uri,
+      envVars: job.env_vars ?? {},
+      delayToleranceHours: job.delay_tolerance_hours,
+      createdAt: job.created_at,
+      updatedAt: job.updated_at,
+    };
+  }
+
+  private mapJobToBackendCreate(data: CreateJobRequest): any {
+    return {
+      image_uri: data.imageUri,
+      env_vars: data.envVars ?? {},
+      delay_tolerance_hours: data.delayToleranceHours,
+    };
+  }
+
+  private mapJobToBackendUpdate(data: UpdateJobRequest): any {
+    const payload: Record<string, any> = {};
+    if (data.imageUri !== undefined) payload.image_uri = data.imageUri;
+    if (data.envVars !== undefined) payload.env_vars = data.envVars;
+    if (data.delayToleranceHours !== undefined) payload.delay_tolerance_hours = data.delayToleranceHours;
+    return payload;
+  }
+
+  private mapCreateJobResponse(job: any): CreateJobResponse {
+    return {
+      id: job.id,
+      ownerId: job.owner_id,
+      imageUri: job.image_uri,
+      envVars: job.env_vars ?? {},
+      delayToleranceHours: job.delay_tolerance_hours,
+      createdAt: job.created_at,
+      updatedAt: job.updated_at,
+    };
+  }
+
+  private mapExecutionFromBackend(exec: any): JobExecution {
+    return {
+      id: exec.id,
+      jobId: exec.job_id,
+      status: exec.status,
+      chosenAt: exec.chosen_at ?? null,
+      cloudRegion: exec.cloud_region ?? null,
+      vmType: exec.vm_type ?? null,
+      startedAt: exec.started_at ?? null,
+      completedAt: exec.completed_at ?? null,
+      exitCode: exec.exit_code ?? null,
+      logUri: exec.log_uri ?? null,
+      costEstimateUsd: exec.cost_estimate_usd ?? null,
+      costActualUsd: exec.cost_actual_usd ?? null,
+      carbonIntensityGkwh: exec.carbon_intensity_g_kwh ?? null,
+      carbonEmittedKg: exec.carbon_emitted_kg ?? null,
+      createdAt: exec.created_at,
+    };
+  }
+
   private getAuthHeaders(): Record<string, string> {
     const token = localStorage.getItem('auth_token');
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -197,34 +258,40 @@ class ApiClient {
 
   // Job management endpoints
   async createJob(data: CreateJobRequest): Promise<CreateJobResponse> {
-    return this.request<CreateJobResponse>('/api/v1/jobs', {
+    const payload = this.mapJobToBackendCreate(data);
+    const raw = await this.request<any>('/api/v1/jobs', {
       method: 'POST',
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
+    return this.mapCreateJobResponse(raw);
   }
 
   async getJob(jobId: string): Promise<Job> {
-    return this.request<Job>(`/api/v1/jobs/${jobId}`, {
+    const raw = await this.request<any>(`/api/v1/jobs/${jobId}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
+    return this.mapJobFromBackend(raw);
   }
 
   async getUserJobs(limit?: number): Promise<{ jobs: Job[] }> {
     const params = limit ? `?limit=${limit}` : '';
-    return this.request<{ jobs: Job[] }>(`/api/v1/jobs${params}`, {
+    const raw = await this.request<{ jobs: any[] }>(`/api/v1/jobs${params}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
+    return { jobs: (raw.jobs || []).map(this.mapJobFromBackend.bind(this)) };
   }
 
   async updateJob(jobId: string, data: UpdateJobRequest): Promise<Job> {
-    return this.request<Job>(`/api/v1/jobs/${jobId}`, {
+    const payload = this.mapJobToBackendUpdate(data);
+    const raw = await this.request<any>(`/api/v1/jobs/${jobId}`, {
       method: 'PUT', // Backend uses PUT, not PATCH
       headers: this.getAuthHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
+    return this.mapJobFromBackend(raw);
   }
 
   async deleteJob(jobId: string): Promise<void> {
@@ -238,10 +305,11 @@ class ApiClient {
   async getJobExecutions(jobId: string, limit?: number): Promise<JobExecution[]> {
     try {
       const params = limit ? `?limit=${limit}` : '';
-      return this.request<JobExecution[]>(`/api/v1/jobs/${jobId}/executions${params}`, {
+  const raw = await this.request<any[]>(`/api/v1/jobs/${jobId}/executions${params}`, {
         method: 'GET',
         headers: this.getAuthHeaders(),
-      });
+  });
+  return (raw || []).map(this.mapExecutionFromBackend.bind(this));
     } catch (error) {
       console.warn(`Executions endpoint not implemented yet for job ${jobId}`);
       // Return empty array as fallback

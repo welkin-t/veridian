@@ -89,7 +89,7 @@ export const JobsPage: React.FC<JobsPageProps> = () => {
   };
 
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.image_uri.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = job.imageUri.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          job.id.toLowerCase().includes(searchTerm.toLowerCase());
     // Since we don't have execution data yet, we'll show all jobs regardless of status filter
     return matchesSearch;
@@ -279,7 +279,7 @@ export const JobsPage: React.FC<JobsPageProps> = () => {
                         <div>
                           <p className="text-sm font-medium text-muted-foreground mb-1">Container Image</p>
                           <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded truncate">
-                            {job.image_uri}
+                            {job.imageUri}
                           </p>
                         </div>
                         
@@ -287,7 +287,7 @@ export const JobsPage: React.FC<JobsPageProps> = () => {
                           <p className="text-sm font-medium text-muted-foreground mb-1">Delay Tolerance</p>
                           <p className="text-sm flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {job.delay_tolerance_hours} hours
+                            {job.delayToleranceHours} hours
                           </p>
                         </div>
                       </div>
@@ -296,30 +296,30 @@ export const JobsPage: React.FC<JobsPageProps> = () => {
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">
-                            Created {new Date(job.created_at).toLocaleDateString()}
+                            Created {new Date(job.createdAt).toLocaleDateString()}
                           </span>
                         </div>
                         
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm">
-                            Updated {new Date(job.updated_at).toLocaleDateString()}
+                            Updated {new Date(job.updatedAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
 
-                      {Object.keys(job.env_vars).length > 0 && (
+                      {Object.keys(job.envVars).length > 0 && (
                         <div className="mb-4">
                           <p className="text-sm font-medium text-muted-foreground mb-2">Environment Variables</p>
                           <div className="flex flex-wrap gap-2">
-                            {Object.entries(job.env_vars).slice(0, 3).map(([key, value]) => (
+                            {Object.entries(job.envVars).slice(0, 3).map(([key, value]) => (
                               <Badge key={key} variant="outline" className="text-xs font-mono">
                                 {key}={String(value)}
                               </Badge>
                             ))}
-                            {Object.keys(job.env_vars).length > 3 && (
+                            {Object.keys(job.envVars).length > 3 && (
                               <Badge variant="outline" className="text-xs">
-                                +{Object.keys(job.env_vars).length - 3} more
+                                +{Object.keys(job.envVars).length - 3} more
                               </Badge>
                             )}
                           </div>

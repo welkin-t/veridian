@@ -284,7 +284,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
             <div>
               <h2 className="text-3xl font-bold text-foreground font-mono">{job.id}</h2>
               <p className="text-muted-foreground mt-1">
-                Created {new Date(job.created_at).toLocaleDateString()}
+                Created {new Date(job.createdAt).toLocaleDateString()}
               </p>
             </div>
           </div>
@@ -315,7 +315,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
               <div>
                 <p className="text-sm font-medium text-muted-foreground mb-1">Container Image</p>
                 <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded break-all">
-                  {job.image_uri}
+                  {job.imageUri}
                 </p>
               </div>
               
@@ -323,15 +323,15 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
                 <p className="text-sm font-medium text-muted-foreground mb-1">Delay Tolerance</p>
                 <p className="text-sm flex items-center gap-1">
                   <Clock className="w-3 h-3" />
-                  {job.delay_tolerance_hours} hours
+                  {job.delayToleranceHours} hours
                 </p>
               </div>
 
-              {Object.keys(job.env_vars).length > 0 && (
+              {Object.keys(job.envVars).length > 0 && (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-2">Environment Variables</p>
                   <div className="space-y-1">
-                    {Object.entries(job.env_vars).map(([key, value]) => (
+                    {Object.entries(job.envVars).map(([key, value]) => (
                       <div key={key} className="text-sm font-mono bg-muted/50 px-2 py-1 rounded">
                         <span className="text-primary">{key}</span>=<span>{String(value)}</span>
                       </div>
@@ -358,34 +358,34 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
                     {getStatusBadge(latestExecution.status)}
                   </div>
                   
-                  {latestExecution.cloud_region && (
+                  {latestExecution.cloudRegion && (
                     <div className="flex items-center gap-2">
                       <Server className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">Region: {latestExecution.cloud_region}</span>
+                      <span className="text-sm">Region: {latestExecution.cloudRegion}</span>
                     </div>
                   )}
                   
-                  {latestExecution.vm_type && (
+                  {latestExecution.vmType && (
                     <div className="flex items-center gap-2">
                       <Container className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">VM Type: {latestExecution.vm_type}</span>
+                      <span className="text-sm">VM Type: {latestExecution.vmType}</span>
                     </div>
                   )}
                   
                   <div className="grid grid-cols-2 gap-4 pt-2">
-                    {latestExecution.cost_actual_usd && (
+                    {latestExecution.costActualUsd && (
                       <div className="text-center">
                         <p className="text-2xl font-bold text-green-600">
-                          ${latestExecution.cost_actual_usd.toFixed(2)}
+                          ${latestExecution.costActualUsd.toFixed(2)}
                         </p>
                         <p className="text-xs text-muted-foreground">Actual Cost</p>
                       </div>
                     )}
                     
-                    {latestExecution.carbon_emitted_kg && (
+                    {latestExecution.carbonEmittedKg && (
                       <div className="text-center">
                         <p className="text-2xl font-bold text-primary">
-                          {latestExecution.carbon_emitted_kg}kg
+                          {latestExecution.carbonEmittedKg}kg
                         </p>
                         <p className="text-xs text-muted-foreground">CO₂ Emitted</p>
                       </div>
@@ -433,60 +433,60 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
                         {getStatusBadge(execution.status)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(execution.created_at).toLocaleString()}
+                        {new Date(execution.createdAt).toLocaleString()}
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                      {execution.cloud_region && (
+                      {execution.cloudRegion && (
                         <div>
                           <p className="font-medium">Region</p>
-                          <p className="text-muted-foreground">{execution.cloud_region}</p>
+                          <p className="text-muted-foreground">{execution.cloudRegion}</p>
                         </div>
                       )}
                       
-                      {execution.cost_actual_usd && (
+                      {execution.costActualUsd && (
                         <div>
                           <p className="font-medium">Cost</p>
-                          <p className="text-green-600">${execution.cost_actual_usd.toFixed(2)}</p>
+                          <p className="text-green-600">${execution.costActualUsd.toFixed(2)}</p>
                         </div>
                       )}
                       
-                      {execution.carbon_emitted_kg && (
+                      {execution.carbonEmittedKg && (
                         <div>
                           <p className="font-medium">Carbon</p>
-                          <p className="text-primary">{execution.carbon_emitted_kg}kg CO₂</p>
+                          <p className="text-primary">{execution.carbonEmittedKg}kg CO₂</p>
                         </div>
                       )}
                       
-                      {execution.exit_code !== null && (
+                      {execution.exitCode !== null && (
                         <div>
                           <p className="font-medium">Exit Code</p>
-                          <p className={execution.exit_code === 0 ? "text-green-600" : "text-red-600"}>
-                            {execution.exit_code}
+                          <p className={execution.exitCode === 0 ? "text-green-600" : "text-red-600"}>
+                            {execution.exitCode}
                           </p>
                         </div>
                       )}
                     </div>
 
-                    {(execution.started_at || execution.completed_at) && (
+                    {(execution.startedAt || execution.completedAt) && (
                       <>
                         <Separator className="my-3" />
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          {execution.started_at && (
+                          {execution.startedAt && (
                             <div>
                               <p className="font-medium">Started</p>
                               <p className="text-muted-foreground">
-                                {new Date(execution.started_at).toLocaleString()}
+                                {new Date(execution.startedAt).toLocaleString()}
                               </p>
                             </div>
                           )}
                           
-                          {execution.completed_at && (
+                          {execution.completedAt && (
                             <div>
                               <p className="font-medium">Completed</p>
                               <p className="text-muted-foreground">
-                                {new Date(execution.completed_at).toLocaleString()}
+                                {new Date(execution.completedAt).toLocaleString()}
                               </p>
                             </div>
                           )}

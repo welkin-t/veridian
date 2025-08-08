@@ -35,9 +35,9 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
   const { user, logout } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<CreateJobRequest>({
-    image_uri: '',
-    env_vars: {},
-    delay_tolerance_hours: 24
+    imageUri: '',
+    envVars: {},
+    delayToleranceHours: 24
   });
   const [envVarInput, setEnvVarInput] = useState({ key: '', value: '' });
 
@@ -59,8 +59,8 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
     if (envVarInput.key && envVarInput.value) {
       setFormData(prev => ({
         ...prev,
-        env_vars: {
-          ...prev.env_vars,
+        envVars: {
+          ...prev.envVars,
           [envVarInput.key]: envVarInput.value
         }
       }));
@@ -71,15 +71,15 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
   const removeEnvVar = (key: string) => {
     setFormData(prev => ({
       ...prev,
-      env_vars: Object.fromEntries(
-        Object.entries(prev.env_vars || {}).filter(([k]) => k !== key)
+      envVars: Object.fromEntries(
+        Object.entries(prev.envVars || {}).filter(([k]) => k !== key)
       )
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.image_uri) return;
+  if (!formData.imageUri) return;
 
     setIsLoading(true);
     try {
@@ -97,9 +97,9 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
     }
   };
 
-  const canSubmit = formData.image_uri.trim() !== '' && 
-                   formData.delay_tolerance_hours >= 0 && 
-                   formData.delay_tolerance_hours <= 168;
+  const canSubmit = formData.imageUri.trim() !== '' && 
+                   formData.delayToleranceHours >= 0 && 
+                   formData.delayToleranceHours <= 168;
 
   if (!user) {
     return (
@@ -212,8 +212,8 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
                 <Input
                   id="image_uri"
                   placeholder="docker.io/myapp/processor:v1.0.0"
-                  value={formData.image_uri}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image_uri: e.target.value }))}
+                  value={formData.imageUri}
+                  onChange={(e) => setFormData(prev => ({ ...prev, imageUri: e.target.value }))}
                   className="font-mono"
                   required
                 />
@@ -260,11 +260,11 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
               </div>
 
               {/* Existing env vars */}
-              {Object.keys(formData.env_vars || {}).length > 0 && (
+              {Object.keys(formData.envVars || {}).length > 0 && (
                 <div className="space-y-2">
                   <Label>Current Variables</Label>
                   <div className="space-y-2">
-                    {Object.entries(formData.env_vars || {}).map(([key, value]) => (
+                    {Object.entries(formData.envVars || {}).map(([key, value]) => (
                       <div key={key} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
                         <code className="text-sm flex-1">
                           {key}={String(value)}
@@ -304,10 +304,10 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
                   type="number"
                   min="0"
                   max="168"
-                  value={formData.delay_tolerance_hours}
+                  value={formData.delayToleranceHours}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
-                    delay_tolerance_hours: parseInt(e.target.value) || 0 
+                    delayToleranceHours: parseInt(e.target.value) || 0 
                   }))}
                   className="max-w-xs"
                   required
@@ -333,14 +333,14 @@ export const NewJobPage: React.FC<NewJobPageProps> = () => {
           </Alert>
 
           {/* Validation Alert */}
-          {!canSubmit && formData.image_uri && (
+          {!canSubmit && formData.imageUri && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <div>
                 <p className="font-medium">Validation Issues</p>
                 <ul className="text-sm mt-1 list-disc list-inside">
-                  {!formData.image_uri.trim() && <li>Container image URI is required</li>}
-                  {(formData.delay_tolerance_hours < 0 || formData.delay_tolerance_hours > 168) && 
+                  {!formData.imageUri.trim() && <li>Container image URI is required</li>}
+                  {(formData.delayToleranceHours < 0 || formData.delayToleranceHours > 168) && 
                     <li>Delay tolerance must be between 0 and 168 hours</li>
                   }
                 </ul>
