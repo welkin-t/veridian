@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '@/lib/api/unified-api-client';
 import { 
   Leaf, 
   LogOut, 
@@ -50,8 +50,7 @@ export const JobsPage: React.FC<JobsPageProps> = () => {
       setError(null);
       
       // Fetch jobs from API - backend returns { jobs: Job[] }
-      const response = await apiClient.getUserJobs();
-      const fetchedJobs = response.jobs || [];
+      const fetchedJobs = await apiClient.getJobs();
       
       // Since executions endpoint doesn't exist yet, just use jobs without execution data
       const jobsWithoutExecutions = fetchedJobs.map((job) => ({

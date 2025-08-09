@@ -4,6 +4,7 @@ import { Leaf } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { SignInPage, type Testimonial } from '@/components/ui/sign-in';
 import { useAuth } from '@/lib/auth-context';
+import { AuthError } from '@/lib/errors/auth-error';
 import { type LoginFormData } from '@/lib/validation';
 import greenImage from '@/assets/green.png';
 
@@ -34,16 +35,15 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login } = useAuth();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Get success message from registration redirect
   const successMessage = location.state?.message;
 
   const handleSignIn = async (data: LoginFormData) => {
-    setServerError(null);
+    setErrorMessage(null);
 
     try {
-      // Use AuthContext login method
       await login({
         email: data.email,
         password: data.password,
@@ -53,8 +53,11 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your credentials and try again.';
-      setServerError(errorMessage);
+      if (error instanceof AuthError) {
+        setErrorMessage(error.getUserFriendlyMessage());
+      } else {
+        setErrorMessage('An unexpected error occurred. Please try again.');
+      }
       console.error('Login error:', error);
     }
   };
@@ -75,7 +78,7 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
 
   return (
     <div className="bg-background text-foreground">
-      {/* Success/Error Messages */}
+      {/* Success Message */}
       {successMessage && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md">
           <Alert className="border-primary/20 bg-primary/5">
@@ -87,10 +90,11 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
         </div>
       )}
       
-      {serverError && (
+      {/* Error Message */}
+      {errorMessage && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md">
           <Alert variant="destructive">
-            <AlertDescription>{serverError}</AlertDescription>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         </div>
       )}

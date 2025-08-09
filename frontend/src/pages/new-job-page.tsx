@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '@/lib/api/unified-api-client';
 import { 
   Leaf, 
   LogOut, 

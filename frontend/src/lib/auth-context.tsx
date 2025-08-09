@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiClient } from '@/lib/api-client';
-import { decodeJWT, isTokenExpired } from '@/lib/jwt-utils';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { authService } from '@/lib/auth/auth-service';
 import type { 
   AuthContextType, 
   AuthState, 
@@ -30,140 +29,97 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading: true,
   });
 
-  // Check if user is authenticated on mount
+  // Initialize authentication state on mount
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('auth_token');
-      const refreshToken = localStorage.getItem('refresh_token');
-      
-      if (token && refreshToken) {
-        // Check if token is valid and not expired
-        if (!isTokenExpired(token)) {
-          const payload = decodeJWT(token);
-          if (payload) {
-            setState({
-              user: {
-                id: payload.sub,
-                email: payload.email,
-                emailVerified: true, // We'll assume verified if they have a valid token
-                isActive: true,
-                createdAt: new Date(payload.iat * 1000).toISOString(),
-                updatedAt: new Date().toISOString(),
-                lastLogin: new Date().toISOString(),
-              },
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return;
-          }
-        }
-        
-        // Token is expired or invalid - clear storage
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('refresh_token');
+    const initializeAuth = async () => {
+      try {
+        const initialState = await authService.initialize();
+        setState(initialState);
+      } catch (error) {
+        console.error('Auth initialization failed:', error);
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
-      
-      setState(prev => ({
-        ...prev,
-        isAuthenticated: false,
-        isLoading: false,
-      }));
     };
 
-    checkAuth();
+    initializeAuth();
   }, []);
 
-  const login = async (credentials: LoginRequest): Promise<void> => {
+  const login = useCallback(async (credentials: LoginRequest): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const response = await apiClient.login(credentials);
-      
-      // Store tokens
-      localStorage.setItem('auth_token', response.accessToken);
-      localStorage.setItem('refresh_token', response.refreshToken);
-      
+      const user = await authService.login(credentials);
       setState({
-        user: response.user,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        isLoading: false,
-      }));
+      setState(prev => ({ ...prev, isLoading: false }));
       throw error;
     }
-  };
+  }, []);
 
-  const register = async (data: RegisterRequest): Promise<void> => {
+  const register = useCallback(async (data: RegisterRequest): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const response = await apiClient.register(data);
-      
-      // Store tokens
-      localStorage.setItem('auth_token', response.accessToken);
-      localStorage.setItem('refresh_token', response.refreshToken);
-      
+      const user = await authService.register(data);
       setState({
-        user: response.user,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
     } catch (error) {
-      setState(prev => ({
-        ...prev,
+      setState(prev => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, []);
+
+  const logout = useCallback(async (): Promise<void> => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.warn('Logout failed:', error);
+    } finally {
+      setState({
+        user: null,
+        isAuthenticated: false,
         isLoading: false,
-      }));
-      throw error;
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    try {
-      // Call backend logout endpoint
-      await apiClient.logout();
-    } catch (error) {
-      // Even if logout fails on server, we should clear local state
-      console.warn('Logout request failed:', error);
-    }
-    
-    // Clear local state regardless of backend response
-    setState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
-  };
-
-  const refreshToken = async (): Promise<void> => {
-    const currentRefreshToken = localStorage.getItem('refresh_token');
-    
-    if (!currentRefreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    try {
-      const response = await apiClient.refreshToken({
-        refreshToken: currentRefreshToken,
       });
-      
-      // Update tokens
-      localStorage.setItem('auth_token', response.accessToken);
-      localStorage.setItem('refresh_token', response.refreshToken);
-      
+    }
+  }, []);
+
+  const refreshToken = useCallback(async (): Promise<void> => {
+    try {
+      await authService.refreshToken();
+      // Update state with current auth status
+      const currentState = authService.getAuthState();
+      setState(currentState);
     } catch (error) {
-      // If refresh fails, log user out
-      logout();
+      // If refresh fails, clear auth state
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
       throw error;
     }
-  };
+  }, []);
 
-  const changePassword = async (data: ChangePasswordRequest): Promise<void> => {
-    await apiClient.changePassword(data);
-  };
+  const changePassword = useCallback(async (data: ChangePasswordRequest): Promise<void> => {
+    try {
+      await authService.changePassword(data);
+    } catch (error) {
+      throw error;
+    }
+  }, []);
 
   const contextValue: AuthContextType = {
     ...state,

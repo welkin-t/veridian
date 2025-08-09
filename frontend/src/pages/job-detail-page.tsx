@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '@/lib/api/unified-api-client';
 import { 
   Leaf, 
   LogOut, 
@@ -63,7 +63,8 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
       setExecutions(executionsData);
     } catch (error) {
       console.error('Failed to load job details:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load job details');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load job details';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +92,8 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = () => {
       navigate('/jobs');
     } catch (error) {
       console.error('Failed to delete job:', error);
-      alert('Failed to delete job. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete job. Please try again.';
+      alert(errorMessage);
     }
   };
 

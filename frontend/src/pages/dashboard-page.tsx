@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/auth-context';
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from '@/lib/api/unified-api-client';
 import { 
   Leaf, 
   LogOut, 
@@ -81,12 +81,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = () => {
     try {
       setIsLoadingStats(true);
       
-      // Fetch user's jobs - backend returns { jobs: Job[] }
-      const userJobsResponse = await apiClient.getUserJobs(10);
-      console.log('API Response:', userJobsResponse); // Debug log
-      
-      // Backend returns { jobs: Job[] }, extract the jobs array
-      const userJobs = userJobsResponse?.jobs || [];
+      // Fetch user's jobs - now returns Job[] directly
+      const userJobs = await apiClient.getJobs(10);
+      console.log('API Response:', userJobs); // Debug log
       
       setRecentJobs(userJobs);
       

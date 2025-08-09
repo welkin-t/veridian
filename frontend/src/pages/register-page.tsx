@@ -4,6 +4,7 @@ import { Leaf } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RegisterPage } from '@/components/ui/register-form';
 import { useAuth } from '@/lib/auth-context';
+import { AuthError } from '@/lib/errors/auth-error';
 import type { RegisterFormData } from '@/lib/validation';
 
 interface RegisterPageProps {}
@@ -11,15 +12,14 @@ interface RegisterPageProps {}
 export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async (data: RegisterFormData) => {
-    setServerError(null);
+    setErrorMessage(null);
     setIsLoading(true);
 
     try {
-      // Use AuthContext register method
       await register({
         email: data.email,
         password: data.password,
@@ -28,8 +28,11 @@ export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
       // On successful registration, navigate directly to dashboard
       navigate('/dashboard');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration failed. Please try again.';
-      setServerError(errorMessage);
+      if (error instanceof AuthError) {
+        setErrorMessage(error.getUserFriendlyMessage());
+      } else {
+        setErrorMessage('An unexpected error occurred. Please try again.');
+      }
       console.error('Registration error:', error);
     } finally {
       setIsLoading(false);
@@ -49,10 +52,10 @@ export const RegisterPageContainer: React.FC<RegisterPageProps> = () => {
   return (
     <div className="bg-background text-foreground">
       {/* Error Messages */}
-      {serverError && (
+      {errorMessage && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-md">
           <Alert variant="destructive">
-            <AlertDescription>{serverError}</AlertDescription>
+            <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         </div>
       )}
